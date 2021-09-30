@@ -58,7 +58,8 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
       UNPIVOT(values_2019 FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
       WHERE year = 2019
       )
-      SELECT t_2020.year, t_2020.metric, values_2020, values_2019, CONCAT(ROUND((values_2020 - values_2019) / values_2019 * 100), '%') AS YoY_Change
+      SELECT t_2020.year, t_2020.metric, FORMAT("%'d", values_2020) AS values_2020, FORMAT("%'d", values_2019) AS values_2019,
+      CONCAT(ROUND((values_2020 - values_2019) / values_2019 * 100), '%') AS YoY_Change
       FROM t_2020
       LEFT JOIN t_2019 ON t_2019.metric = t_2020.metric
                               ;;
