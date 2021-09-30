@@ -26,6 +26,40 @@ view: pre_oe_weekly_medicaresitewide {
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
           WHERE (start_date BETWEEN '2021-10-01' AND '2021-10-14') OR (start_date BETWEEN '2020-10-01' AND '2020-10-14')
+          -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2019-10-15' AND '2019-10-30')
+          GROUP BY week_of_year, year
+      )
+      , session_agg AS (SELECT sessions.week_of_year
+      ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
+      ,sessions.year
+      ,COUNT(DISTINCT fullVisitorId) AS users
+      ,COUNT(DISTINCT sessionId) AS sessions
+      ,SUM(pageviews) AS pageviews
+      ,AVG(is_bounce) AS bounce_rate
+      ,COUNT(DISTINCT sessionId) / COUNT(DISTINCT fullVisitorId) AS sessions_per_user
+      ,AVG(mobile_user) AS mobile_users
+      FROM sessions
+      GROUP BY week_of_year, year)
+      ,temp AS (
+          SELECT session_agg.week_of_year AS Week
+          ,session_agg.year AS Year
+          ,date_range AS Date_Range
+          ,CAST(users AS FLOAT64) AS Users
+          ,CAST(sessions AS FLOAT64) AS Sessions
+          ,CAST(pageviews AS FLOAT64) AS Pageviews
+          ,ROUND(bounce_rate * 100) AS `Bounce Rate`
+          ,sessions_per_user AS `Sessions per User`
+          ,ROUND(mobile_users * 100) AS `% Mobile Users`
+          ,ROUND(overall_csat * 100) AS `Overall CSAT`
+          ,ROUND(goal_completion_percent * 100) AS `Goal Completion %`
+          ,CAST(surveys_completed AS FLOAT64) AS `Surveys Completed`
+          ,ROUND(bene_percent * 100) AS `Beneficiary %`
+          ,ROUND(coa_percent * 100) AS `CoA %`
+          ,ROUND(caregiver_percent * 100) AS `Caregiver %`
+          ,ROUND(professional_percent * 100) AS `Professional %`
+          FROM session_agg
+          LEFT JOIN qualtrics ON qualtrics.week_of_year = session_agg.week_of_year AND qualtrics.year = session_agg.year
+      )
       ,t_2021 AS (
           SELECT * FROM temp
           UNPIVOT(values_2021 FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `Sessions per User`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
@@ -115,7 +149,7 @@ view: pre_oe_weekly_medicaresitewide {
     sql: ${TABLE}.prev_week ;;
   }
 
-  dimension: 2019_Weekly_Totals {
+  dimension: 2020_Weekly_Totals {
     type: string
     sql: ${TABLE}.values_2020 ;;
   }

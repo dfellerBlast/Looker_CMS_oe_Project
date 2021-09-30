@@ -107,7 +107,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
     sql: ${TABLE}.prev_week ;;
   }
 
-  dimension: 2019_Weekly_Totals {
+  dimension: 2020_Weekly_Totals {
     type: string
     sql: ${TABLE}.values_2020 ;;
   }
