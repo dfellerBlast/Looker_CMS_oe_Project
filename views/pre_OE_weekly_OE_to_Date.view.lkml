@@ -4,7 +4,7 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
           ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
           FROM `steady-cat-772.30876903.ga_sessions_20*`
           ,UNNEST(hits) AS hits
-          WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201207' OR _TABLE_SUFFIX BETWEEN '191015' AND '191207')
+          WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '201014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
           -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
           AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
       )
@@ -22,7 +22,7 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
           ,SUM(csr_enrollments) AS csr_enrollments
           ,SUM(total_enrollments) AS total_enrollments
           FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
-          WHERE (date BETWEEN '2020-10-15' AND '2020-12-07' OR date BETWEEN '2019-10-15' AND '2019-12-07')
+          WHERE (date BETWEEN '2021-10-01' AND '2020-10-14' OR date BETWEEN '2019-10-15' AND '2019-12-07')
           -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2019-10-15' AND '2019-10-30')
           GROUP BY year
       )
@@ -31,7 +31,7 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
           ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
           ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
           FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-          WHERE date >= '2020-10-15'
+          WHERE date >= '2020-10-01'
           GROUP BY Year
       )
       , temp AS (SELECT pc.year AS Year
@@ -48,20 +48,20 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
       LEFT JOIN accounts ON accounts.year = pc.year
       )
       -- SELECT * FROM temp
+      ,t_2021 AS (SELECT *
+      FROM temp
+      UNPIVOT(values_2021 FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
+      WHERE year = 2021
+      )
       ,t_2020 AS (SELECT *
       FROM temp
       UNPIVOT(values_2020 FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
       WHERE year = 2020
       )
-      ,t_2019 AS (SELECT *
-      FROM temp
-      UNPIVOT(values_2019 FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
-      WHERE year = 2019
-      )
-      SELECT t_2020.year, t_2020.metric, FORMAT("%'d", values_2020) AS values_2020, FORMAT("%'d", values_2019) AS values_2019,
-      CONCAT(ROUND((values_2020 - values_2019) / values_2019 * 100), '%') AS YoY_Change
-      FROM t_2020
-      LEFT JOIN t_2019 ON t_2019.metric = t_2020.metric
+      SELECT t_2021.year, t_2021.metric, FORMAT("%'d", values_2021) AS values_2021, FORMAT("%'d", values_2020) AS values_2020,
+      CONCAT(ROUND((values_2021 - values_2020) / values_2020 * 100), '%') AS YoY_Change
+      FROM t_2021
+      LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric
                               ;;
   }
 
@@ -83,13 +83,13 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
 
   dimension: OE_to_Date_Total{
     type: string
-    sql: ${TABLE}.values_2020 ;;
+    sql: ${TABLE}.values_2021 ;;
   }
 
 
-  dimension: 2019_OE_to_Date_Total {
+  dimension: 2020_OE_to_Date_Total {
     type: string
-    sql: ${TABLE}.values_2019 ;;
+    sql: ${TABLE}.values_2020 ;;
   }
 
   dimension: perc_change_yoy {
