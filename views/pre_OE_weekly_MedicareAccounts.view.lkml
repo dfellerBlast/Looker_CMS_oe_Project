@@ -11,7 +11,6 @@ WITH sessions_2020 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS W
     ,UNNEST(hits) AS hits
     WHERE _TABLE_SUFFIX BETWEEN '201001' AND '201014'
     -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
-    AND REGEXP_CONTAINS(hits.page.pagePath, '/account/')
     GROUP BY Week, Year, fullVisitorId, visitId, date
 )
 
@@ -37,7 +36,7 @@ WITH sessions_2020 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS W
     ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
         (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
     FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-    WHERE date >= '2020-10-01'
+    WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
     GROUP BY Week, Year
 )
 
@@ -78,7 +77,6 @@ WITH sessions_2020 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS W
 ,t_2020 AS (SELECT *
     FROM agg_2020
     UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
-
 )
 SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
 ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
