@@ -1,75 +1,104 @@
 view: pre_oe_weekly_medicareaccounts {
   derived_table: {
     sql: --Medicare accounts
-WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
-      ,date
-      ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS Year
-      ,fullVisitorId
-      ,concat(fullVisitorId, visitId, date) AS sessionId
-      ,COUNTIF(hits.type = 'PAGE') AS pageviews
-      FROM `steady-cat-772.157906096.ga_sessions_20*`
-      ,UNNEST(hits) AS hits
-      WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
-      -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
-      AND REGEXP_CONTAINS(hits.page.pagePath, '/account/')
-      GROUP BY Week, Year, fullVisitorId, visitId, date
-      )
-      -- SELECT * FROM sessions
-      , accounts AS (
-          SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y-%m-%d', date)) AS Week
-          ,EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year
-          ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS `New Accounts`
-          ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS `Successful Logins`
-          ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
-              (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
-          FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-          WHERE date >= '2020-10-01'
-          GROUP BY Week, Year
-      )
-      -- SELECT * FROM accounts
-      , temp AS (SELECT Week
-      ,Year
-      ,CONCAT(MIN(PARSE_DATE('%Y%m%d', date)), ' - ', MAX(PARSE_DATE('%Y%m%d', date))) AS date_range
-      ,CAST(COUNT(DISTINCT fullVisitorId) AS FLOAT64) AS `Users`
-      ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
-      ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
-      FROM sessions
-      GROUP BY Week, Year)
-      -- SELECT * FROM temp
-      , agg AS (SELECT temp.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
-          FROM temp
-          LEFT JOIN accounts ON accounts.Week = temp.Week AND accounts.Year = temp.Year
-      )
-      -- SELECT * FROM agg
-      ,t_2021 AS (SELECT *
-      FROM agg
-      UNPIVOT(values_2021 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
-      WHERE year = 2021
-      )
-      ,t_2020 AS (SELECT *
-      FROM agg
-      UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
-      WHERE year = 2020
-      )
-      SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
-      ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-              WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
-              ELSE CONCAT(values_2021, '%') END as values_2021
-      ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
-              LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
-      ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
-              WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
-              ELSE CONCAT(values_2020, '%') END as values_2020
-          ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
-      FROM t_2021 LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
-      ORDER BY Week, CASE metric
-            WHEN 'Users' THEN 1
-            WHEN 'Sessions' THEN 2
-            WHEN 'Pageviews' THEN 3
-            WHEN 'New Accounts' THEN 4
-            WHEN 'Successful Logins' THEN 5
-            WHEN '% Login Success' THEN 6
-         END
+WITH sessions_2020 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
+    ,date
+    ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS Year
+    ,fullVisitorId
+    ,concat(fullVisitorId, visitId, date) AS sessionId
+    ,COUNTIF(hits.type = 'PAGE') AS pageviews
+    FROM `steady-cat-772.157906096.ga_sessions_20*`
+    ,UNNEST(hits) AS hits
+    WHERE _TABLE_SUFFIX BETWEEN '201001' AND '201014'
+    -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
+    AND REGEXP_CONTAINS(hits.page.pagePath, '/account/')
+    GROUP BY Week, Year, fullVisitorId, visitId, date
+)
+
+,sessions_2021 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
+    ,date
+    ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS Year
+    ,fullVisitorId
+    ,concat(fullVisitorId, visitId, date) AS sessionId
+    ,COUNTIF(hits.type = 'PAGE') AS pageviews
+    FROM `steady-cat-772.30876903.ga_sessions_20*`
+    ,UNNEST(hits) AS hits
+    WHERE _TABLE_SUFFIX BETWEEN '211001' AND '211014'
+    -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
+    AND (REGEXP_CONTAINS(hits.page.pagePath, '/mbp/') OR REGEXP_CONTAINS(hits.page.pagePath, '/account/'))
+    GROUP BY Week, Year, fullVisitorId, visitId, date
+)
+
+, accounts AS (
+    SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y-%m-%d', date)) AS Week
+    ,EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year
+    ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS `New Accounts`
+    ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS `Successful Logins`
+    ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
+        (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
+    FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
+    WHERE date >= '2020-10-01'
+    GROUP BY Week, Year
+)
+
+, temp_2021 AS (SELECT Week
+    ,Year
+    ,CONCAT(MIN(PARSE_DATE('%Y%m%d', date)), ' - ', MAX(PARSE_DATE('%Y%m%d', date))) AS date_range
+    ,CAST(COUNT(DISTINCT fullVisitorId) AS FLOAT64) AS `Users`
+    ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
+    ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
+    FROM sessions_2021
+    GROUP BY Week, Year
+)
+
+, temp_2020 AS (SELECT Week
+    ,Year
+    ,CONCAT(MIN(PARSE_DATE('%Y%m%d', date)), ' - ', MAX(PARSE_DATE('%Y%m%d', date))) AS date_range
+    ,CAST(COUNT(DISTINCT fullVisitorId) AS FLOAT64) AS `Users`
+    ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
+    ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
+    FROM sessions_2020
+    GROUP BY Week, Year
+)
+
+, agg_2021 AS (SELECT temp_2021.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
+    FROM temp_2021
+    LEFT JOIN accounts ON accounts.Week = temp_2021.Week AND accounts.Year = temp_2021.Year
+)
+
+, agg_2020 AS (SELECT temp_2020.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
+    FROM temp_2020
+    LEFT JOIN accounts ON accounts.Week = temp_2020.Week AND accounts.Year = temp_2020.Year
+)
+,t_2021 AS (SELECT *
+    FROM agg_2021
+    UNPIVOT(values_2021 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
+)
+
+,t_2020 AS (SELECT *
+    FROM agg_2020
+    UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
+
+)
+SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
+,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
+        WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
+        ELSE CONCAT(values_2021, '%') END as values_2021
+,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
+        LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
+,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
+        WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
+        ELSE CONCAT(values_2020, '%') END as values_2020
+    ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
+FROM t_2021 LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
+ORDER BY Week, CASE metric
+    WHEN 'Users' THEN 1
+    WHEN 'Sessions' THEN 2
+    WHEN 'Pageviews' THEN 3
+    WHEN 'New Accounts' THEN 4
+    WHEN 'Successful Logins' THEN 5
+    WHEN '% Login Success' THEN 6
+    END
                       ;;
   }
 
