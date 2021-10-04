@@ -1,7 +1,9 @@
 view: pre_oe_weekly_oe_to_date {derived_table: {
-    sql: WITH plan_compare AS (
+    sql: --OE to date
+WITH plan_compare AS (
           SELECT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId, CAST(hits.type = 'PAGE' AS INT64) AS pageview
           ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
+          ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
           FROM `steady-cat-772.30876903.ga_sessions_20*`
           ,UNNEST(hits) AS hits
           WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
@@ -9,33 +11,32 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
           AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
       )
       , plan_compare_agg AS (
-          SELECT year
+          SELECT year, Week
           ,COUNT(DISTINCT fullVisitorId) AS users
           ,COUNT(DISTINCT sessionId) AS sessions
           ,SUM(pageview) AS pageviews
           FROM plan_compare
-          GROUP BY year
+          GROUP BY year, Week
       )
       -- enroll data
-      ,etl_enroll AS (SELECT EXTRACT(YEAR FROM date) AS year
+      ,etl_enroll AS (SELECT EXTRACT(YEAR FROM date) AS year, EXTRACT(week FROM date) AS Week
           ,SUM(total_enrollments - csr_enrollments) AS web_enrollments
           ,SUM(csr_enrollments) AS csr_enrollments
           ,SUM(total_enrollments) AS total_enrollments
           FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
           WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
-
           -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2019-10-15' AND '2019-10-30')
-          GROUP BY year
+          GROUP BY year, Week
       )
       , accounts AS (
-          SELECT EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year
+          SELECT EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year, EXTRACT(week FROM PARSE_DATE('%Y-%m-%d', date)) AS Week
           ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
           ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
           FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-          WHERE date >= '2020-10-01'
-          GROUP BY Year
+          WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
+          GROUP BY Year, Week
       )
-      , temp AS (SELECT pc.year AS Year
+      , temp AS (SELECT pc.year AS Year, pc.Week as Week
       ,users AS `PlanFinder Users`
       ,sessions AS `PlanFinder Sessions`
       ,pageviews AS `PlanFinder Pageviews`
@@ -45,8 +46,8 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
       ,CAST(NewAccounts AS INT64) AS `New Accounts`
       ,CAST(SuccessfulLogins AS INT64) AS `Successful Logins`
       FROM plan_compare_agg AS pc
-      LEFT JOIN etl_enroll ON etl_enroll.year = pc.year
-      LEFT JOIN accounts ON accounts.year = pc.year
+      LEFT JOIN etl_enroll ON etl_enroll.year = pc.year AND etl_enroll.Week = pc.Week
+      LEFT JOIN accounts ON accounts.year = pc.year AND accounts.Week = pc.Week
       )
       -- SELECT * FROM temp
       ,t_2021 AS (SELECT *
@@ -59,10 +60,11 @@ view: pre_oe_weekly_oe_to_date {derived_table: {
       UNPIVOT(values_2020 FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
       WHERE year = 2020
       )
-      SELECT t_2021.year, t_2021.metric, FORMAT("%'d", values_2021) AS values_2021, FORMAT("%'d", values_2020) AS values_2020,
-      CONCAT(ROUND((values_2021 - values_2020) / values_2020 * 100), '%') AS YoY_Change
+      SELECT t_2021.metric, FORMAT("%'d", SUM(values_2021)) AS values_2021, FORMAT("%'d", SUM(values_2020)) AS values_2020,
+      CONCAT(ROUND((SUM(values_2021) - SUM(values_2020)) / SUM(values_2020) * 100), '%') AS YoY_Change
       FROM t_2021
-      LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric
+      LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric AND t_2020.Week = t_2021.Week
+      GROUP BY metric
                               ;;
   }
 
