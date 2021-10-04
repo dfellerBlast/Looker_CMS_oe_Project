@@ -1,7 +1,14 @@
 view: pre_oe_weekly_homepage {
   derived_table: {
     sql: --homepage
-WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
+WITH homepage_session AS (SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId) AS sessionId
+    FROM `steady-cat-772.30876903.ga_sessions_20*`
+    ,UNNEST(hits) AS hits
+    WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+    AND REGEXP_CONTAINS(hits.page.pagePath, '\\/|\\/index\\$|\\/index\\.html')
+)
+
+, sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
       ,date
       ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS Year
       ,fullVisitorId
@@ -13,7 +20,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
       ,UNNEST(hits) AS hits
       WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
       -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
-      AND hits.page.pagePath = '/'
+      AND CONCAT(fullVisitorId, visitId) IN (SELECT sessionId FROM homepage_session)
       GROUP BY Week, Year, fullVisitorId, visitId, date
       )
 
