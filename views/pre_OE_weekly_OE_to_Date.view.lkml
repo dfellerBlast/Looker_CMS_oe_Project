@@ -1,5 +1,5 @@
 view: pre_oe_weekly_oe_to_date {derived_table: {
-    sql: --OE to date
+    sql:--OE to date
 WITH plan_compare AS (
           SELECT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId, CAST(hits.type = 'PAGE' AS INT64) AS pageview
           ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
@@ -64,6 +64,7 @@ WITH plan_compare AS (
       CONCAT(ROUND((SUM(values_2021) - SUM(values_2020)) / SUM(values_2020) * 100), '%') AS YoY_Change
       FROM t_2021
       LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric AND t_2020.Week = t_2021.Week
+      WHERE t_2021.Week < EXTRACT(WEEK FROM CURRENT_DATE())
       GROUP BY metric
                               ;;
   }
