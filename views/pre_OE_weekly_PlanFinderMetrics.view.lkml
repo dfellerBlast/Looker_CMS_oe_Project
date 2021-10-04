@@ -21,13 +21,13 @@ view: pre_oe_weekly_planfindermetrics {
  -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
- -- SELECT * FROM user_data
+-- SELECT * FROM user_data
  ,user_agg_2021 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
  ,AVG(is_new) AS new_user_percent
  FROM user_data
  WHERE year = 2021
  GROUP BY week_of_year, year)
-
+-- SELECT * FROM user_agg_2021
  ,user_agg_2020 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
  ,AVG(is_new) AS new_user_percent
  FROM user_data
@@ -89,7 +89,7 @@ view: pre_oe_weekly_planfindermetrics {
  FROM sessions
  WHERE sessionId IN (SELECT sessionId FROM plan_compare) AND year=2021
  GROUP BY week_of_year, year)
- -- SELECT * FROM session_agg_2021
+-- SELECT * FROM session_agg_2021
 
  ,session_agg_2020 AS (
  SELECT week_of_year
@@ -126,6 +126,7 @@ view: pre_oe_weekly_planfindermetrics {
  -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
+-- SELECT * FROM etl_enroll ORDER BY year, week_of_year
 
  --qualtrics data
  ,qualtrics AS (
@@ -140,6 +141,7 @@ view: pre_oe_weekly_planfindermetrics {
  -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
+-- SELECT * FROM qualtrics ORDER BY year, week_of_year
 
  -- medigap and wizard tool tables
  , medigap_wizard AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS week_of_year
@@ -167,6 +169,7 @@ view: pre_oe_weekly_planfindermetrics {
  FROM medigap_wizard
  GROUP BY week_of_year, year
  )
+-- SELECT * FROM medigap_wizard_agg ORDER BY year, week_of_year
 
  , full_table_2021 AS(SELECT CONCAT('Week ', user_agg_2021.week_of_year-40) AS Week, user_agg_2021.date_range
  ,CAST(sessions AS FLOAT64) AS Sessions, CAST(users AS FLOAT64) AS Users, CAST(pageviews AS FLOAT64) AS Pageviews
@@ -191,7 +194,7 @@ view: pre_oe_weekly_planfindermetrics {
  LEFT JOIN etl_enroll ON etl_enroll.week_of_year = user_agg_2021.week_of_year
  LEFT JOIN qualtrics ON qualtrics.week_of_year = user_agg_2021.week_of_year
  LEFT JOIN medigap_wizard_agg ON medigap_wizard_agg.week_of_year = user_agg_2021.week_of_year
- WHERE user_agg_2021.year = 2021 AND etl_enroll.year = 2021 AND qualtrics.year = 2021 AND medigap_wizard_agg.year = 2021
+ WHERE user_agg_2021.year = 2021 AND qualtrics.year = 2021 AND medigap_wizard_agg.year = 2021-- AND etl_enroll.year = 2021
  ORDER BY Week)
 
  -- 2020
@@ -218,7 +221,7 @@ view: pre_oe_weekly_planfindermetrics {
  LEFT JOIN etl_enroll ON etl_enroll.week_of_year = user_agg_2020.week_of_year AND etl_enroll.year = user_agg_2020.year
  LEFT JOIN qualtrics ON qualtrics.week_of_year = user_agg_2020.week_of_year AND qualtrics.year = user_agg_2020.year
  LEFT JOIN medigap_wizard_agg ON medigap_wizard_agg.week_of_year = user_agg_2020.week_of_year AND medigap_wizard_agg.year = user_agg_2020.year
- -- WHERE user_agg_2020.year = 2020 AND etl_enroll.year = 2020 AND qualtrics.year = 2021 AND medigap_wizard_agg.year = 2020
+ WHERE user_agg_2020.year = 2020 AND etl_enroll.year = 2020 AND qualtrics.year = 2020 AND medigap_wizard_agg.year = 2020
  ORDER BY Week)
 
  ,t_2021 AS (
@@ -228,6 +231,7 @@ view: pre_oe_weekly_planfindermetrics {
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
+-- SELECT * FROM t_2021
 
  ,t_2020 AS (
  SELECT * FROM full_table_2020
@@ -236,16 +240,17 @@ view: pre_oe_weekly_planfindermetrics {
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
+-- SELECT * FROM t_2020
 
  SELECT t_2021.Week, t_2021.date_range, t_2021.metric
- ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollmetns', 'Call Center Enrollments', 'Total Enrollments')
+ ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  -- THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
  THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
  WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
  ELSE CONCAT(values_2021, '%') END as values_2021
- ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
- LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
- ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollmetns', 'Call Center Enrollments', 'Total Enrollments')
+ ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week),
+ LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) * 100), '%') AS prev_week
+ ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
  WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
  ELSE CONCAT(values_2020, '%') END as values_2020
