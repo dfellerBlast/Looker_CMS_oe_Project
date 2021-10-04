@@ -73,10 +73,6 @@ WITH plan_compare AS (
   }
 
 
-  dimension: Year {
-    type: string
-    sql: ${TABLE}.year ;;
-  }
 
   dimension: metric {
     type: string
