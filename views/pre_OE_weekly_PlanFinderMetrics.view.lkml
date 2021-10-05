@@ -46,14 +46,14 @@ WITH plan_compare AS (
  ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '\\/plan-compare\\/#\\/[a-zA-Z]')) > 0 THEN 1 ELSE 0 END AS interact
  -- ma and pdp sessions
- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'MAP')
+ ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'MAPD')
  AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans - Enter Your Information')
  AND REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT')) > 0 THEN 1 ELSE 0 END AS ma_session
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans - Enter Your Information') AND
  (hits.eventinfo.eventLabel = 'Part D + Medigap' OR hits.eventinfo.eventLabel = 'Part D')) > 0 THEN 1 ELSE 0 END AS pdp_session
  -- logged in vs anonymous
  ,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND hits.eventInfo.eventLabel = 'Login') > 0 THEN 1 ELSE 0 END AS logged_in
- ,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND hits.eventInfo.eventLabel = 'Continue without logging in 1') > 0 THEN 1 ELSE 0 END AS anonymous
+ ,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND hits.eventInfo.eventLabel = 'Continue without logging in') > 0 THEN 1 ELSE 0 END AS anonymous
  --insulin demo click
  ,COUNTIF(hits.eventinfo.eventLabel = 'Insulin Savings Program' OR hits.eventinfo.eventLabel = 'insulin savings program') AS insulin_demo_click
  --enroll
