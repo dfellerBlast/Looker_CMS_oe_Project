@@ -2,6 +2,8 @@ connection: "cms_medicare_ga360"
 
 include: "/views/*.view.lkml"
 
+week_start_day: sunday
+
 explore: pre_oe_weekly_oe_to_date {}
 explore: pre_oe_weekly_planfindermetrics {}
 explore: pre_oe_weekly_medicareaccounts {}
