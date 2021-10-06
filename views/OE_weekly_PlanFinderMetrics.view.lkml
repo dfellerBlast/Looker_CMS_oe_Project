@@ -7,7 +7,7 @@ WITH plan_compare AS (
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
  FROM `steady-cat-772.30876903.ga_sessions_20*`
  ,UNNEST(hits) AS hits
- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+ WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
  -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
  )
@@ -18,7 +18,7 @@ WITH plan_compare AS (
  ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  INNER JOIN plan_compare ON plan_compare.fullVisitorId = ga.fullVisitorId
- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+ WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
  -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
@@ -62,7 +62,7 @@ WITH plan_compare AS (
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/#/search-results')) > 0 THEN 1 ELSE 0 END AS plan_results
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+ WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
  -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date)
 
@@ -123,7 +123,7 @@ WITH plan_compare AS (
  ,SUM(csr_enrollments) AS csr_enrollments
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
- WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
+ WHERE (date BETWEEN '2021-10-06' AND '2021-10-14' OR date BETWEEN '2020-10-06' AND '2020-10-14')
  -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
@@ -138,7 +138,7 @@ WITH plan_compare AS (
  ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
- AND (end_date BETWEEN '2021-10-01' AND '2021-10-14' OR end_date BETWEEN '2020-10-01' AND '2020-10-14')
+ AND (end_date BETWEEN '2021-10-06' AND '2021-10-14' OR end_date BETWEEN '2020-10-06' AND '2020-10-14')
  -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
@@ -156,7 +156,7 @@ WITH plan_compare AS (
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+ WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
  -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, date)
 

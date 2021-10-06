@@ -10,7 +10,7 @@ view: oe_weekly_medicaresitewide {
       ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
       FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
       ,UNNEST(hits) AS hits
-      WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+      WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
       -- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '201030' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
       GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date
       )
@@ -25,7 +25,7 @@ view: oe_weekly_medicaresitewide {
           ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-          WHERE (start_date BETWEEN '2021-10-01' AND '2021-10-14') OR (start_date BETWEEN '2020-10-01' AND '2020-10-14')
+          WHERE (start_date BETWEEN '2021-10-06' AND '2021-10-14') OR (start_date BETWEEN '2020-10-06' AND '2020-10-14')
           -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2019-10-15' AND '2019-10-30')
           GROUP BY week_of_year, year
       )

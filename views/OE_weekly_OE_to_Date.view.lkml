@@ -6,7 +6,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
                 FROM `steady-cat-772.30876903.ga_sessions_20*`
                 ,UNNEST(hits) AS hits
-                WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+                WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
                 -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
                 AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
             )
@@ -24,7 +24,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(csr_enrollments) AS csr_enrollments
                 ,SUM(total_enrollments) AS total_enrollments
                 FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
-                WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
+                WHERE (date BETWEEN '2021-10-06' AND '2021-10-14' OR date BETWEEN '2020-10-06' AND '2020-10-14')
                 -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2019-10-15' AND '2019-10-30')
                 GROUP BY year, Week
             )
@@ -33,7 +33,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
                 ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
                 FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-                WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
+                WHERE (date BETWEEN '2021-10-06' AND '2021-10-14' OR date BETWEEN '2020-10-06' AND '2020-10-14')
                 GROUP BY Year, Week
             )
             , temp AS (SELECT pc.year AS Year, pc.Week as Week
@@ -64,7 +64,7 @@ view: oe_weekly_oe_to_date {derived_table: {
             CONCAT(ROUND((SUM(values_2021) - SUM(values_2020)) / SUM(values_2020) * 100), '%') AS YoY_Change
             FROM t_2021
             LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric AND t_2020.Week = t_2021.Week
-            WHERE t_2021.Week < EXTRACT(WEEK FROM CURRENT_DATE())
+            --WHERE t_2021.Week < EXTRACT(WEEK FROM CURRENT_DATE())
             GROUP BY metric
                                     ;;
   }
