@@ -9,34 +9,38 @@ WITH plan_compare AS (
           WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
           -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
           AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
+          AND EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) < EXTRACT(WEEK FROM CURRENT_DATE())
       )
       , plan_compare_agg AS (
-          SELECT year, Week
+          SELECT year
           ,COUNT(DISTINCT fullVisitorId) AS users
           ,COUNT(DISTINCT sessionId) AS sessions
           ,SUM(pageview) AS pageviews
           FROM plan_compare
-          GROUP BY year, Week
+          WHERE Week < EXTRACT(WEEK FROM CURRENT_DATE())
+          GROUP BY year
       )
       -- enroll data
-      ,etl_enroll AS (SELECT EXTRACT(YEAR FROM date) AS year, EXTRACT(week FROM date) AS Week
+      ,etl_enroll AS (SELECT EXTRACT(YEAR FROM date) AS year
           ,SUM(total_enrollments - csr_enrollments) AS web_enrollments
           ,SUM(csr_enrollments) AS csr_enrollments
           ,SUM(total_enrollments) AS total_enrollments
           FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
           WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
           -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2019-10-15' AND '2019-10-30')
-          GROUP BY year, Week
+          AND EXTRACT(week FROM date) < EXTRACT(week FROM CURRENT_DATE())
+          GROUP BY year
       )
       , accounts AS (
-          SELECT EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year, EXTRACT(week FROM PARSE_DATE('%Y-%m-%d', date)) AS Week
+          SELECT EXTRACT(YEAR FROM PARSE_DATE('%Y-%m-%d', date)) AS Year
           ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
           ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
           FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
           WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
-          GROUP BY Year, Week
+          AND EXTRACT(week FROM PARSE_DATE('%Y-%m-%d', date)) < EXTRACT(week FROM CURRENT_DATE())
+          GROUP BY Year
       )
-      , temp AS (SELECT pc.year AS Year, pc.Week as Week
+      , temp AS (SELECT pc.year AS Year
       ,users AS `PlanFinder Users`
       ,sessions AS `PlanFinder Sessions`
       ,pageviews AS `PlanFinder Pageviews`
@@ -46,8 +50,8 @@ WITH plan_compare AS (
       ,CAST(NewAccounts AS INT64) AS `New Accounts`
       ,CAST(SuccessfulLogins AS INT64) AS `Successful Logins`
       FROM plan_compare_agg AS pc
-      LEFT JOIN etl_enroll ON etl_enroll.year = pc.year AND etl_enroll.Week = pc.Week
-      LEFT JOIN accounts ON accounts.year = pc.year AND accounts.Week = pc.Week
+      LEFT JOIN etl_enroll ON etl_enroll.year = pc.year
+      LEFT JOIN accounts ON accounts.year = pc.year
       )
       -- SELECT * FROM temp
       ,t_2021 AS (SELECT *
@@ -63,8 +67,7 @@ WITH plan_compare AS (
       SELECT t_2021.metric, FORMAT("%'d", SUM(values_2021)) AS values_2021, FORMAT("%'d", SUM(values_2020)) AS values_2020,
       CONCAT(ROUND((SUM(values_2021) - SUM(values_2020)) / SUM(values_2020) * 100), '%') AS YoY_Change
       FROM t_2021
-      LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric AND t_2020.Week = t_2021.Week
-      WHERE t_2021.Week < EXTRACT(WEEK FROM CURRENT_DATE())
+      LEFT JOIN t_2020 ON t_2020.metric = t_2021.metric
       GROUP BY metric
                               ;;
   }

@@ -90,7 +90,7 @@ view: pre_oe_weekly_medicaresitewide {
             WHEN 'Users' THEN 1
             WHEN 'Sessions' THEN 2
             WHEN 'Pageviews' THEN 3
-            WHEN 'Bounce Rage' THEN 4
+            WHEN 'Bounce Rate' THEN 4
             WHEN 'Sessions per User' THEN 5
             WHEN '% Mobile Users' THEN 6
             WHEN 'Overall CSAT' THEN 7
