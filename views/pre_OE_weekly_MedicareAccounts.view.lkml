@@ -168,6 +168,29 @@ ORDER BY Week, CASE metric
     ;;
   }
 
+  dimension: week_of_year_temp {
+    type: string
+    sql: CASE WHEN ${TABLE}.Week = 'Week -1' THEN 'Week 1'
+              WHEN ${TABLE}.Week = 'Week 0' THEN 'Week 2'
+              WHEN ${TABLE}.Week = 'Week 1' THEN 'Week 3'
+          END;;
+    html:
+    {% if value == 'Week 2' %}
+    <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% elsif value == 'Week 4' %}
+    <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% elsif value == 'Week 6' %}
+    <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% elsif value == 'Week 8' %}
+    <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% elsif value == 'Week 10' %}
+    <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% else %}
+    <p style="color: black; background-color: white; font-size:100%; text-align:center">{{ rendered_value }}</p>
+    {% endif %}
+    ;;
+  }
+
   dimension_group: date {
     type: time
     timeframes: [
