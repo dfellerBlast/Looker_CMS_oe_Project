@@ -138,7 +138,7 @@ WITH plan_compare AS (
  ,concat(ga.fullVisitorId, ga.visitId, ga.date) AS sessionId
  -- wizard session and conversions
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medicarecoverageoptions') OR REGEXP_CONTAINS(hits.page.pagePath, 'medicare-coverage-options') OR REGEXP_CONTAINS(hits.page.pagePath, 'plan-compare/#/coverage-options')) > 0 THEN 1 ELSE 0 END AS wizard_session
- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Plan Options') AND REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Ready to Continue')) > 0 THEN 1 ELSE 0 END AS wizard_convert
+ ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND (REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Plan Options') OR REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Options')) AND (REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Ready to Continue') OR REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Look at Plans'))) > 0 THEN 1 ELSE 0 END AS wizard_convert
  -- medigap session and conversions
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans') OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
@@ -156,7 +156,6 @@ WITH plan_compare AS (
  FROM medigap_wizard
  GROUP BY week_of_year, year
  )
--- SELECT * FROM medigap_wizard_agg ORDER BY year, week_of_year
 
  , full_table_2021 AS(SELECT CONCAT('Week ', user_agg_2021.week_of_year-40) AS Week, user_agg_2021.date_range
  ,CAST(sessions AS FLOAT64) AS Sessions, CAST(users AS FLOAT64) AS Users, CAST(pageviews AS FLOAT64) AS Pageviews
