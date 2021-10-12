@@ -4,7 +4,7 @@ view: oe_weekly_homepage {
       WITH homepage_session AS (SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId) AS sessionId
           FROM `steady-cat-772.30876903.ga_sessions_20*`
           ,UNNEST(hits) AS hits
-          WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
+          WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
           AND REGEXP_CONTAINS(hits.page.pagePath, '\\/|\\/index\\$|\\/index\\.html')
       )
 
@@ -18,7 +18,7 @@ view: oe_weekly_homepage {
             ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
             FROM `steady-cat-772.30876903.ga_sessions_20*`
             ,UNNEST(hits) AS hits
-            WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
+            WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
             -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
             AND CONCAT(fullVisitorId, visitId) IN (SELECT sessionId FROM homepage_session)
             GROUP BY Week, Year, fullVisitorId, visitId, date

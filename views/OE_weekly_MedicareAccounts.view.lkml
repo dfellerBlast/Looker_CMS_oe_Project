@@ -9,7 +9,7 @@ view: oe_weekly_medicareaccounts {
           ,COUNTIF(hits.type = 'PAGE') AS pageviews
           FROM `steady-cat-772.157906096.ga_sessions_20*`
           ,UNNEST(hits) AS hits
-          WHERE _TABLE_SUFFIX BETWEEN '201006' AND '201014'
+          WHERE _TABLE_SUFFIX BETWEEN '201012' AND '201207'
           -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
           GROUP BY Week, Year, fullVisitorId, visitId, date
       )
@@ -22,7 +22,7 @@ view: oe_weekly_medicareaccounts {
           ,COUNTIF(hits.type = 'PAGE') AS pageviews
           FROM `steady-cat-772.30876903.ga_sessions_20*`
           ,UNNEST(hits) AS hits
-          WHERE _TABLE_SUFFIX BETWEEN '211006' AND '211014'
+          WHERE _TABLE_SUFFIX BETWEEN '211012' AND '211207'
           -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
           AND (REGEXP_CONTAINS(hits.page.pagePath, '/mbp/') OR REGEXP_CONTAINS(hits.page.pagePath, '/account/'))
           GROUP BY Week, Year, fullVisitorId, visitId, date
@@ -36,7 +36,7 @@ view: oe_weekly_medicareaccounts {
           ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
               (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
           FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-          WHERE (date BETWEEN '2021-10-06' AND '2021-10-14' OR date BETWEEN '2020-10-06' AND '2020-10-14')
+          WHERE (date BETWEEN '2021-10-12' AND '2021-12-07' OR date BETWEEN '2020-10-12' AND '2020-12-07')
           GROUP BY Week, Year
       )
 
