@@ -1,7 +1,7 @@
 view: oe_weekly_planfindermetrics {
   derived_table: {
     sql:
-    -- plan finder metrics
+-- plan finder metrics
 WITH plan_compare AS (
  SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId, EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
@@ -13,22 +13,20 @@ WITH plan_compare AS (
  )
  -- user level info
  , user_data AS (SELECT ga.fullVisitorId, EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year, date
- -- ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
  ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  INNER JOIN plan_compare ON plan_compare.fullVisitorId = ga.fullVisitorId
  WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
--- SELECT * FROM user_data
+
  ,user_agg_2021 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
  ,AVG(is_new) AS new_user_percent
  FROM user_data
  WHERE year = 2021
  GROUP BY week_of_year, year)
--- SELECT * FROM user_agg_2021
+
  ,user_agg_2020 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
  ,AVG(is_new) AS new_user_percent
  FROM user_data
@@ -54,8 +52,6 @@ WITH plan_compare AS (
  -- logged in vs anonymous
  ,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND hits.eventInfo.eventLabel = 'Login') > 0 THEN 1 ELSE 0 END AS logged_in
  ,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND REGEXP_CONTAINS(hits.eventInfo.eventLabel,'Continue without logging in')) > 0 THEN 1 ELSE 0 END AS anonymous
- --insulin demo click
- ,COUNTIF(hits.eventinfo.eventLabel = 'Insulin Savings Program' OR hits.eventinfo.eventLabel = 'insulin savings program') AS insulin_demo_click
  --enroll
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans') AND REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Enroll')) > 0 THEN 1 ELSE 0 END AS enrolled
  --plan results
@@ -63,7 +59,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date)
 
  ,session_agg_2021 AS (
@@ -82,7 +77,6 @@ WITH plan_compare AS (
  ,COUNTIF(ma_session = 1 AND pdp_session = 1) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS both_percent
  ,SUM(logged_in) / (SUM(logged_in) + SUM(anonymous)) AS logged_in
  ,SUM(anonymous) / (SUM(logged_in) + SUM(anonymous)) AS anonymous
- ,SUM(insulin_demo_click) AS insulin_demo_filter_clicks
  ,SUM(enrolled) / COUNT(DISTINCT sessionId) AS enroll_allsession_perc
  ,SUM(enrolled) / COUNTIF(is_bounce = 0) AS enroll_nonbounce_perc
  ,SUM(plan_results) / COUNT(DISTINCT sessionId) AS plan_results_all_perc
@@ -90,7 +84,6 @@ WITH plan_compare AS (
  FROM sessions
  WHERE sessionId IN (SELECT sessionId FROM plan_compare) AND year=2021
  GROUP BY week_of_year, year)
--- SELECT * FROM session_agg_2021
 
  ,session_agg_2020 AS (
  SELECT week_of_year
@@ -107,7 +100,6 @@ WITH plan_compare AS (
  ,COUNTIF(ma_session = 1 AND pdp_session = 1) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS both_percent
  ,SUM(logged_in) / (SUM(logged_in) + SUM(anonymous)) AS logged_in
  ,SUM(anonymous) / (SUM(logged_in) + SUM(anonymous)) AS anonymous
- ,SUM(insulin_demo_click) AS insulin_demo_filter_clicks
  ,SUM(enrolled) / COUNT(DISTINCT sessionId) AS enroll_allsession_perc
  ,SUM(enrolled) / COUNTIF(is_bounce = 0) AS enroll_nonbounce_perc
  ,SUM(plan_results) / COUNT(DISTINCT sessionId) AS plan_results_all_perc
@@ -124,10 +116,8 @@ WITH plan_compare AS (
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
  WHERE (date BETWEEN '2021-10-06' AND '2021-10-14' OR date BETWEEN '2020-10-06' AND '2020-10-14')
- -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
--- SELECT * FROM etl_enroll ORDER BY year, week_of_year
 
  --qualtrics data
  ,qualtrics AS (
@@ -139,7 +129,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
  AND (end_date BETWEEN '2021-10-06' AND '2021-10-14' OR end_date BETWEEN '2020-10-06' AND '2020-10-14')
- -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
 
@@ -157,7 +146,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211006' AND '211014' OR _TABLE_SUFFIX BETWEEN '201006' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, date)
 
  , medigap_wizard_agg AS (
@@ -169,7 +157,6 @@ WITH plan_compare AS (
  FROM medigap_wizard
  GROUP BY week_of_year, year
  )
--- SELECT * FROM medigap_wizard_agg ORDER BY year, week_of_year
 
  , full_table_2021 AS(SELECT CONCAT('Week ', user_agg_2021.week_of_year-40) AS Week, user_agg_2021.date_range
  ,CAST(sessions AS FLOAT64) AS Sessions, CAST(users AS FLOAT64) AS Users, CAST(pageviews AS FLOAT64) AS Pageviews
@@ -179,7 +166,6 @@ WITH plan_compare AS (
  ,ROUND(logged_in * 100) AS `Logged In %`, ROUND(anonymous * 100) AS `Anonymous %`
  ,ROUND(pdp_percent * 100) AS `PDP PlanType Clicks %`, ROUND(ma_percent * 100) AS `MA PlanType Clicks %`
  ,ROUND(both_percent * 100) AS `MA & PDP PlanType Clicks %`
- ,CAST(insulin_demo_filter_clicks AS FLOAT64) AS `Insulin Demo Filter Clicks (Total)`
  ,ROUND(enroll_allsession_perc * 100) AS `Enroll All Sessions %`, ROUND(enroll_nonbounce_perc * 100) AS `Enroll Non-Bounce %`
  ,ROUND(plan_results_all_perc * 100) AS `Plan Results All Sessions %`, ROUND(plan_results_nonbounce_perc * 100) AS `Plan Results Non-Bounce %`
  ,CAST(wizard_sessions AS FLOAT64) AS `Wizard Sessions`, ROUND(wizard_convert_percent * 100) AS `Wizard Conversions %`
@@ -206,7 +192,6 @@ WITH plan_compare AS (
  ,ROUND(logged_in * 100) AS `Logged In %`, ROUND(anonymous * 100) AS `Anonymous %`
  ,ROUND(pdp_percent * 100) AS `PDP PlanType Clicks %`, ROUND(ma_percent * 100) AS `MA PlanType Clicks %`
  ,ROUND(both_percent * 100) AS `MA & PDP PlanType Clicks %`
- ,CAST(insulin_demo_filter_clicks AS FLOAT64) AS `Insulin Demo Filter Clicks (Total)`
  ,ROUND(enroll_allsession_perc * 100) AS `Enroll All Sessions %`, ROUND(enroll_nonbounce_perc * 100) AS `Enroll Non-Bounce %`
  ,ROUND(plan_results_all_perc * 100) AS `Plan Results All Sessions %`, ROUND(plan_results_nonbounce_perc * 100) AS `Plan Results Non-Bounce %`
  ,CAST(wizard_sessions AS FLOAT64) AS `Wizard Sessions`, ROUND(wizard_convert_percent * 100) AS `Wizard Conversions %`
@@ -227,32 +212,29 @@ WITH plan_compare AS (
  ,t_2021 AS (
  SELECT * FROM full_table_2021
  UNPIVOT(values_2021 FOR metric IN (Sessions, Users, Pageviews, `Bounce Rate`, `Sessions Per User`, `% New Users`, `% Mobile Users`, `Logged In %`, `Anonymous %`, `PDP PlanType Clicks %`
- ,`MA PlanType Clicks %`, `MA & PDP PlanType Clicks %`, `Insulin Demo Filter Clicks (Total)`, `Enroll All Sessions %`, `Enroll Non-Bounce %`, `Plan Results All Sessions %`
+ ,`MA PlanType Clicks %`, `MA & PDP PlanType Clicks %`, `Enroll All Sessions %`, `Enroll Non-Bounce %`, `Plan Results All Sessions %`
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
--- SELECT * FROM t_2021
 
  ,t_2020 AS (
  SELECT * FROM full_table_2020
  UNPIVOT(values_2020 FOR metric IN (Sessions, Users, Pageviews, `Bounce Rate`, `Sessions Per User`, `% New Users`, `% Mobile Users`, `Logged In %`, `Anonymous %`, `PDP PlanType Clicks %`
- ,`MA PlanType Clicks %`, `MA & PDP PlanType Clicks %`, `Insulin Demo Filter Clicks (Total)`, `Enroll All Sessions %`, `Enroll Non-Bounce %`, `Plan Results All Sessions %`
+ ,`MA PlanType Clicks %`, `MA & PDP PlanType Clicks %`, `Enroll All Sessions %`, `Enroll Non-Bounce %`, `Plan Results All Sessions %`
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
--- SELECT * FROM t_2020
 
  SELECT t_2021.Week, t_2021.date_range, t_2021.metric
- ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
- -- THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
+ ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
- WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
+  WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
  ELSE CONCAT(values_2021, '%') END as values_2021
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week),
  LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) * 100), '%') AS prev_week
- ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
+ ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
- WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
+ WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2020, 2) AS STRING)
  ELSE CONCAT(values_2020, '%') END as values_2020
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
  FROM t_2021
@@ -270,7 +252,6 @@ WITH plan_compare AS (
  WHEN 'PDP PlanType Clicks %' THEN 10
  WHEN 'MA PlanType Clicks %' THEN 11
  WHEN 'MA & PDP PlanType Clicks %' THEN 12
- WHEN 'Insulin Demo Filter Clicks (Total)' THEN 13
  WHEN 'Enroll All Sessions %' THEN 14
  WHEN 'Enroll Non-Bounce %' THEN 15
  WHEN 'Plan Results All Sessions %' THEN 16
