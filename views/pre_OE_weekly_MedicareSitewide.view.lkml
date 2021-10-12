@@ -36,7 +36,6 @@ view: pre_oe_weekly_medicaresitewide {
       ,COUNT(DISTINCT sessionId) AS sessions
       ,SUM(pageviews) AS pageviews
       ,AVG(is_bounce) AS bounce_rate
-      ,COUNT(DISTINCT sessionId) / COUNT(DISTINCT fullVisitorId) AS sessions_per_user
       ,AVG(mobile_user) AS mobile_users
       FROM sessions
       GROUP BY week_of_year, year)
@@ -48,7 +47,6 @@ view: pre_oe_weekly_medicaresitewide {
           ,CAST(sessions AS FLOAT64) AS Sessions
           ,CAST(pageviews AS FLOAT64) AS Pageviews
           ,ROUND(bounce_rate * 100) AS `Bounce Rate`
-          ,sessions_per_user AS `Sessions per User`
           ,ROUND(mobile_users * 100) AS `% Mobile Users`
           ,ROUND(overall_csat * 100) AS `Overall CSAT`
           ,ROUND(goal_completion_percent * 100) AS `Goal Completion %`
@@ -62,26 +60,24 @@ view: pre_oe_weekly_medicaresitewide {
       )
       ,t_2021 AS (
           SELECT * FROM temp
-          UNPIVOT(values_2021 FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `Sessions per User`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
+          UNPIVOT(values_2021 FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
           ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
           WHERE year = 2021
       )
       ,t_2020 AS (
           SELECT * FROM temp
-          UNPIVOT(values_2020 FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `Sessions per User`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
+          UNPIVOT(values_2020 FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
           ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
           WHERE year = 2020
       )
       SELECT CONCAT('Week ', t_2021.Week-40) AS Week, t_2021.Date_Range, t_2021.metric
           ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
               THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-              WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
               ELSE CONCAT(values_2021, '%') END as values_2021
           ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
               LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
           ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
               THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
-              WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
               ELSE CONCAT(values_2020, '%') END as values_2020
           ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
       FROM t_2021
@@ -91,15 +87,14 @@ view: pre_oe_weekly_medicaresitewide {
             WHEN 'Sessions' THEN 2
             WHEN 'Pageviews' THEN 3
             WHEN 'Bounce Rate' THEN 4
-            WHEN 'Sessions per User' THEN 5
-            WHEN '% Mobile Users' THEN 6
-            WHEN 'Overall CSAT' THEN 7
-            WHEN 'Goal Completion %' THEN 8
-            WHEN 'Surveys Completed' THEN 9
-            WHEN 'Beneficiary %' THEN 10
-            WHEN 'CoA %' THEN 11
-            WHEN 'Caregiver %' THEN 12
-            WHEN 'Professional %' THEN 13
+            WHEN '% Mobile Users' THEN 5
+            WHEN 'Overall CSAT' THEN 6
+            WHEN 'Goal Completion %' THEN 7
+            WHEN 'Surveys Completed' THEN 8
+            WHEN 'Beneficiary %' THEN 9
+            WHEN 'CoA %' THEN 10
+            WHEN 'Caregiver %' THEN 11
+            WHEN 'Professional %' THEN 12
          END
         ;;
   }
