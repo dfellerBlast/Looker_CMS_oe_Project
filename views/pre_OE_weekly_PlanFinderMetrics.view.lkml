@@ -8,18 +8,15 @@ WITH plan_compare AS (
  FROM `steady-cat-772.30876903.ga_sessions_20*`
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
  )
  -- user level info
  , user_data AS (SELECT ga.fullVisitorId, EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year, date
- -- ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
  ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  INNER JOIN plan_compare ON plan_compare.fullVisitorId = ga.fullVisitorId
  WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
 -- SELECT * FROM user_data
@@ -28,7 +25,7 @@ WITH plan_compare AS (
  FROM user_data
  WHERE year = 2021
  GROUP BY week_of_year, year)
--- SELECT * FROM user_agg_2021
+
  ,user_agg_2020 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
  ,AVG(is_new) AS new_user_percent
  FROM user_data
@@ -63,7 +60,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date)
 
  ,session_agg_2021 AS (
@@ -90,7 +86,6 @@ WITH plan_compare AS (
  FROM sessions
  WHERE sessionId IN (SELECT sessionId FROM plan_compare) AND year=2021
  GROUP BY week_of_year, year)
--- SELECT * FROM session_agg_2021
 
  ,session_agg_2020 AS (
  SELECT week_of_year
@@ -124,10 +119,8 @@ WITH plan_compare AS (
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
  WHERE (date BETWEEN '2021-10-01' AND '2021-10-14' OR date BETWEEN '2020-10-01' AND '2020-10-14')
- -- WHERE (date BETWEEN '2020-10-15' AND '2020-10-30' OR date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
--- SELECT * FROM etl_enroll ORDER BY year, week_of_year
 
  --qualtrics data
  ,qualtrics AS (
@@ -139,7 +132,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
  AND (end_date BETWEEN '2021-10-01' AND '2021-10-14' OR end_date BETWEEN '2020-10-01' AND '2020-10-14')
- -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2020-10-15' AND '2020-10-30')
  GROUP BY week_of_year, year
  )
 
@@ -157,7 +149,6 @@ WITH plan_compare AS (
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
- -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, date)
 
  , medigap_wizard_agg AS (
@@ -231,7 +222,6 @@ WITH plan_compare AS (
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
--- SELECT * FROM t_2021
 
  ,t_2020 AS (
  SELECT * FROM full_table_2020
@@ -240,19 +230,17 @@ WITH plan_compare AS (
  ,`Plan Results Non-Bounce %`, `Wizard Sessions`, `Wizard Conversions %`, `Medigap Sessions`, `Medigap Conversion %`,`Online Enrollments`,`Call Center Enrollments`
  ,`Total Enrollments`, `Overall CSAT`,`Goal Completion %`, `Will Contact Call Center`))
  )
--- SELECT * FROM t_2020
 
  SELECT t_2021.Week, t_2021.date_range, t_2021.metric
  ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
- -- THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
  THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
- WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
+ WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
  ELSE CONCAT(values_2021, '%') END as values_2021
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week),
  LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) * 100), '%') AS prev_week
  ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Insulin Demo Filter Clicks (Total)', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
- WHEN t_2021.metric = 'Sessions Per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
+ WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2020, 2) AS STRING)
  ELSE CONCAT(values_2020, '%') END as values_2020
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
  FROM t_2021
