@@ -140,8 +140,7 @@ WITH plan_compare AS (
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medicarecoverageoptions') OR REGEXP_CONTAINS(hits.page.pagePath, 'medicare-coverage-options') OR REGEXP_CONTAINS(hits.page.pagePath, 'plan-compare/#/coverage-options')) > 0 THEN 1 ELSE 0 END AS wizard_session
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND (REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Plan Options') OR REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Options')) AND (REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Ready to Continue') OR REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Look at Plans'))) > 0 THEN 1 ELSE 0 END AS wizard_convert
  -- medigap session and conversions
- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans') OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session
- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
+,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/medigap-supplemental-insurance-plans/#/m') OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
