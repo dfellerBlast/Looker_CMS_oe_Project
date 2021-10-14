@@ -1,14 +1,6 @@
 view: oe_weekly_homepage {
   derived_table: {
-    sql: --homepage
-      WITH homepage_session AS (SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId) AS sessionId
-          FROM `steady-cat-772.30876903.ga_sessions_20*`
-          ,UNNEST(hits) AS hits
-          WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
-          AND REGEXP_CONTAINS(hits.page.pagePath, '\\/|\\/index\\$|\\/index\\.html')
-      )
-
-      , sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
+    sql: WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
             ,date
             ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS Year
             ,fullVisitorId
@@ -16,11 +8,13 @@ view: oe_weekly_homepage {
             ,COUNTIF(hits.type = 'PAGE') AS pageviews
             ,CASE WHEN COUNTIF(device.deviceCategory = 'mobile' OR device.deviceCategory = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
             ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
+            ,MAX(case when hits.isEntrance = TRUE THEN 1 ELSE 0 END) AS is_entrance
             FROM `steady-cat-772.30876903.ga_sessions_20*`
             ,UNNEST(hits) AS hits
             WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
             -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
-            AND CONCAT(fullVisitorId, visitId) IN (SELECT sessionId FROM homepage_session)
+            -- AND CONCAT(fullVisitorId, visitId) IN (SELECT sessionId FROM homepage_session)
+            AND REGEXP_CONTAINS(hits.page.pagePath, '^/(\\?|$)')
             GROUP BY Week, Year, fullVisitorId, visitId, date
             )
 
@@ -30,7 +24,7 @@ view: oe_weekly_homepage {
             ,CAST(COUNT(DISTINCT fullVisitorId) AS FLOAT64) AS `Users`
             ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
             ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
-            ,ROUND(AVG(is_bounce) * 100) AS `Bounce Rate`
+            ,ROUND(SUM(is_bounce) / SUM(is_entrance) * 100) AS `Bounce Rate`
             ,ROUND(AVG(mobile_user) * 100) AS `% Mobile Users`
             FROM sessions
             GROUP BY Week, Year)
@@ -49,12 +43,12 @@ view: oe_weekly_homepage {
 
             SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
             ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-                    WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2021 AS float64)), -3))
+                    WHEN t_2021.metric = 'Sessions per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
                     ELSE CONCAT(values_2021, '%') END as values_2021
             ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
                     LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
             ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
-                    WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
+                    WHEN t_2021.metric = 'Sessions per User' THEN CAST(ROUND(values_2020, 2) AS STRING)
                     ELSE CONCAT(values_2020, '%') END as values_2020
                 ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
             FROM t_2021 LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
