@@ -6,7 +6,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
                 FROM `steady-cat-772.30876903.ga_sessions_20*`
                 ,UNNEST(hits) AS hits
-                WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
+                WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
                 AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
                 AND EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) < EXTRACT(WEEK FROM CURRENT_DATE())
             )
@@ -25,7 +25,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(csr_enrollments) AS csr_enrollments
                 ,SUM(total_enrollments) AS total_enrollments
                 FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
-                WHERE (date BETWEEN '2021-10-12' AND '2021-12-07' OR date BETWEEN '2020-10-12' AND '2020-12-07')
+                WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
                 AND EXTRACT(week FROM date) < EXTRACT(week FROM CURRENT_DATE())
                 GROUP BY year
             )
@@ -34,7 +34,7 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
                 ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
                 FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-                WHERE (date BETWEEN '2021-10-12' AND '2021-12-07' OR date BETWEEN '2020-10-12' AND '2020-12-07')
+                WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
                 AND EXTRACT(week FROM PARSE_DATE('%Y-%m-%d', date)) < EXTRACT(week FROM CURRENT_DATE())
                 GROUP BY Year
             )

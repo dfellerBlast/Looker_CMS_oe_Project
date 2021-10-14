@@ -11,7 +11,7 @@ view: oe_weekly_homepage {
             ,MAX(case when hits.isEntrance = TRUE THEN 1 ELSE 0 END) AS is_entrance
             FROM `steady-cat-772.30876903.ga_sessions_20*`
             ,UNNEST(hits) AS hits
-            WHERE (_TABLE_SUFFIX BETWEEN '211012' AND '211207' OR _TABLE_SUFFIX BETWEEN '201012' AND '201207')
+            WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
             -- WHERE (_TABLE_SUFFIX BETWEEN '201015' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
             -- AND CONCAT(fullVisitorId, visitId) IN (SELECT sessionId FROM homepage_session)
             AND REGEXP_CONTAINS(hits.page.pagePath, '^/(\\?|$)')
