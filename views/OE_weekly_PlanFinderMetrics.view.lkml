@@ -3,12 +3,15 @@ view: oe_weekly_planfindermetrics {
     sql:
 -- plan finder metrics
 WITH plan_compare AS (
- SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId, EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year
+ SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId
+ ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
+ ,COUNTIF(hits.type = 'PAGE') AS pageviews
  FROM `steady-cat-772.30876903.ga_sessions_20*`
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
  AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
+ GROUP BY fullVisitorId, visitId, date, year, week_of_year
  )
  -- user level info
  , user_data AS (SELECT ga.fullVisitorId, EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year, date
@@ -38,7 +41,7 @@ WITH plan_compare AS (
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', ga.date)) AS year
  ,ga.fullVisitorId
  ,concat(ga.fullVisitorId, ga.visitId, ga.date) AS sessionId
- ,COUNTIF(hits.type = 'PAGE') AS pageviews
+--  ,COUNTIF(hits.type = 'PAGE') AS pageviews
  ,CASE WHEN COUNTIF(device.deviceCategory = 'mobile' OR device.deviceCategory = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
  ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '\\/plan-compare\\/#\\/[a-zA-Z]')) > 0 THEN 1 ELSE 0 END AS interact
@@ -61,14 +64,14 @@ WITH plan_compare AS (
  GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date)
 
  ,session_agg_2021 AS (
- SELECT week_of_year
+ SELECT sessions.week_of_year
  ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
- ,year
- ,COUNT(DISTINCT fullVisitorId) AS users
- ,COUNT(DISTINCT sessionId) AS sessions
- ,SUM(pageviews) AS pageviews
+ ,sessions.year
+ ,COUNT(DISTINCT sessions.fullVisitorId) AS users
+ ,COUNT(DISTINCT sessions.sessionId) AS sessions
+ ,SUM(plan_compare.pageviews) AS pageviews
  ,AVG(is_bounce) AS bounce_rate
- ,COUNT(DISTINCT sessionId) / COUNT(DISTINCT fullVisitorId) AS sessions_per_user
+ ,COUNT(DISTINCT sessions.sessionId) / COUNT(DISTINCT sessions.fullVisitorId) AS sessions_per_user
  -- mobile users
  ,AVG(mobile_user) AS mobile_users
  ,COUNTIF(ma_session = 1 AND pdp_session = 0) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS ma_percent
@@ -76,35 +79,37 @@ WITH plan_compare AS (
  ,COUNTIF(ma_session = 1 AND pdp_session = 1) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS both_percent
  ,SUM(logged_in) / (SUM(logged_in) + SUM(anonymous)) AS logged_in
  ,SUM(anonymous) / (SUM(logged_in) + SUM(anonymous)) AS anonymous
- ,SUM(enrolled) / COUNT(DISTINCT sessionId) AS enroll_allsession_perc
+ ,SUM(enrolled) / COUNT(DISTINCT sessions.sessionId) AS enroll_allsession_perc
  ,SUM(enrolled) / COUNTIF(is_bounce = 0) AS enroll_nonbounce_perc
- ,SUM(plan_results) / COUNT(DISTINCT sessionId) AS plan_results_all_perc
+ ,SUM(plan_results) / COUNT(DISTINCT sessions.sessionId) AS plan_results_all_perc
  ,SUM(plan_results) / SUM(interact) AS plan_results_nonbounce_perc
  FROM sessions
- WHERE sessionId IN (SELECT sessionId FROM plan_compare) AND year=2021
+ INNER JOIN plan_compare ON plan_compare.sessionId = sessions.sessionId AND plan_compare.year = sessions.year AND plan_compare.week_of_year = sessions.week_of_year
+ WHERE sessions.year=2021
  GROUP BY week_of_year, year)
 
  ,session_agg_2020 AS (
- SELECT week_of_year
+ SELECT sessions.week_of_year
  ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
- ,year
- ,COUNT(DISTINCT fullVisitorId) AS users
- ,COUNT(DISTINCT sessionId) AS sessions
+ ,sessions.year
+ ,COUNT(DISTINCT sessions.fullVisitorId) AS users
+ ,COUNT(DISTINCT sessions.sessionId) AS sessions
  ,SUM(pageviews) AS pageviews
  ,AVG(is_bounce) AS bounce_rate
- ,COUNT(DISTINCT sessionId) / COUNT(DISTINCT fullVisitorId) AS sessions_per_user
+ ,COUNT(DISTINCT sessions.sessionId) / COUNT(DISTINCT sessions.fullVisitorId) AS sessions_per_user
  ,AVG(mobile_user) AS mobile_users
  ,COUNTIF(ma_session = 1 AND pdp_session = 0) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS ma_percent
  ,COUNTIF(ma_session = 0 AND pdp_session = 1) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS pdp_percent
  ,COUNTIF(ma_session = 1 AND pdp_session = 1) / COUNTIF(ma_session = 1 OR pdp_session = 1) AS both_percent
  ,SUM(logged_in) / (SUM(logged_in) + SUM(anonymous)) AS logged_in
  ,SUM(anonymous) / (SUM(logged_in) + SUM(anonymous)) AS anonymous
- ,SUM(enrolled) / COUNT(DISTINCT sessionId) AS enroll_allsession_perc
+ ,SUM(enrolled) / COUNT(DISTINCT sessions.sessionId) AS enroll_allsession_perc
  ,SUM(enrolled) / COUNTIF(is_bounce = 0) AS enroll_nonbounce_perc
- ,SUM(plan_results) / COUNT(DISTINCT sessionId) AS plan_results_all_perc
+ ,SUM(plan_results) / COUNT(DISTINCT sessions.sessionId) AS plan_results_all_perc
  ,SUM(plan_results) / SUM(interact) AS plan_results_nonbounce_perc
  FROM sessions
- WHERE sessionId IN (SELECT sessionId FROM plan_compare) AND year=2020
+ INNER JOIN plan_compare ON plan_compare.sessionId = sessions.sessionId AND plan_compare.year = sessions.year AND plan_compare.week_of_year = sessions.week_of_year
+ WHERE sessions.year=2020
  GROUP BY week_of_year, year)
 
  -- enroll data
@@ -265,7 +270,6 @@ WITH plan_compare AS (
  WHEN 'Goal Completion %' THEN 26
  WHEN 'Will Contact Call Center' THEN 27
  END
-
              ;;
   }
 
