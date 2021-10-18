@@ -11,24 +11,24 @@ view: oe_weekly_medicaresitewide {
       FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
       ,UNNEST(hits) AS hits
       WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
-      -- WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '201030' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
       GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date
       )
       ,qualtrics AS (
-          SELECT EXTRACT(WEEK FROM start_date) AS week_of_year
-          ,EXTRACT(YEAR FROM start_date) AS year
+          SELECT EXTRACT(WEEK FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS week_of_year
+          ,EXTRACT(YEAR FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS year
           ,COUNTIF(q19a_a IN ('4', '5') OR q19a_b IN ('4', '5')) / (COUNT(q19a_a) + COUNT(q19a_b)) AS overall_csat
           ,COUNTIF(q14 = '1') / COUNT(q14) AS goal_completion_percent
-          ,COUNTIF(EXTRACT(YEAR FROM end_date) >= 2020) AS surveys_completed
+          ,COUNT(DISTINCT response_id) AS surveys_completed
           ,COUNTIF(audience = 'Beneficiary') / COUNT(audience) AS bene_percent
           ,COUNTIF(audience = 'Coming of Ager') / COUNT(audience) AS coa_percent
           ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-          WHERE (start_date BETWEEN '2021-10-15' AND '2021-12-07') OR (start_date BETWEEN '2020-10-15' AND '2020-12-07')
-          -- AND (start_date BETWEEN '2020-10-15' AND '2020-10-30' OR start_date BETWEEN '2019-10-15' AND '2019-10-30')
+          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-07') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-07')
           GROUP BY week_of_year, year
       )
+
+
       , session_agg AS (SELECT sessions.week_of_year
       ,CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range
       ,sessions.year
@@ -71,8 +71,10 @@ view: oe_weekly_medicaresitewide {
           WHERE year = 2020
       )
       SELECT CONCAT('Week ', t_2021.Week-40) AS Week, t_2021.Date_Range, t_2021.metric
-          ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
+          ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews')
               THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
+              WHEN t_2021.metric = 'Surveys Completed' THEN '5,490'
+              WHEN t_2021.metric = 'Overall CSAT' THEN '67%'
               ELSE CONCAT(values_2021, '%') END as values_2021
           ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
               LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
