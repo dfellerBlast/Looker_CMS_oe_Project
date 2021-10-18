@@ -81,7 +81,8 @@ view: oe_weekly_medicaresitewide {
           ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
               THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
               ELSE CONCAT(values_2020, '%') END as values_2020
-          ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
+          ,CASE WHEN t_2021.metric = 'Surveys Completed' THEN '10%'
+          ELSE CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') END AS Perc_Change_YoY
       FROM t_2021
       LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
       ORDER BY Week, CASE metric
