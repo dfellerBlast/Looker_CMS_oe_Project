@@ -125,14 +125,14 @@ WITH plan_compare AS (
 
  --qualtrics data
  ,qualtrics AS (
- SELECT EXTRACT(WEEK FROM end_date) AS week_of_year
- ,EXTRACT(YEAR FROM end_date) AS year
+ SELECT EXTRACT(WEEK FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS week_of_year
+ ,EXTRACT(YEAR FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS year
  ,COUNTIF(q19a_a IN ('4', '5') OR q19a_b IN ('4', '5')) / (COUNT(q19a_a) + COUNT(q19a_b)) AS overall_csat
  ,COUNTIF(q14 = '1') / COUNT(q14) AS goal_completion_percent
  ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
- AND (end_date BETWEEN '2021-10-15' AND '2021-12-07' OR end_date BETWEEN '2020-10-15' AND '2020-12-07')
+ AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
  GROUP BY week_of_year, year
  )
 

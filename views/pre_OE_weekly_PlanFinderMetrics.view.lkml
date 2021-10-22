@@ -131,7 +131,7 @@ WITH plan_compare AS (
  ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
- AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-01' AND '2021-10-14' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-01' AND '2020-10-14')
+ AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-01' AND '2021-10-15' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-01' AND '2020-10-15')
  GROUP BY week_of_year, year
  )
 
@@ -231,7 +231,6 @@ WITH plan_compare AS (
  ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
   WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
-  WHEN t_2021.metric = 'Overall CSAT' AND t_2021.Week = 'Week 1' THEN '70%'
  ELSE CONCAT(values_2021, '%') END as values_2021
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week),
  LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) * 100), '%') AS prev_week
@@ -239,8 +238,7 @@ WITH plan_compare AS (
  THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
  WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2020, 2) AS STRING)
  ELSE CONCAT(values_2020, '%') END as values_2020
- ,CASE WHEN t_2021.metric = 'Overall CSAT' AND t_2021.Week = 'Week 1' THEN '27%'
- ELSE CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') END AS Perc_Change_YoY
+ ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
  FROM t_2021
  LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
  ORDER BY Week, CASE metric
