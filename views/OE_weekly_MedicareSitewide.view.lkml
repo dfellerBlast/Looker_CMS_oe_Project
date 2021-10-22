@@ -1,6 +1,7 @@
 view: oe_weekly_medicaresitewide {
   derived_table: {
-    sql: WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS week_of_year
+    sql: --medicare sitewide oe
+WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS week_of_year
       ,date
       ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', ga.date)) AS year
       ,ga.fullVisitorId
@@ -24,7 +25,7 @@ view: oe_weekly_medicaresitewide {
           ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
+          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-07') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-07')
           GROUP BY week_of_year, year
       )
 
@@ -71,18 +72,14 @@ view: oe_weekly_medicaresitewide {
           WHERE year = 2020
       )
       SELECT CONCAT('Week ', t_2021.Week-40) AS Week, t_2021.Date_Range, t_2021.metric
-          ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews')
-              THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-              WHEN t_2021.metric = 'Surveys Completed' THEN '5,490'
-              WHEN t_2021.metric = 'Overall CSAT' THEN '67%'
+          ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
               ELSE CONCAT(values_2021, '%') END as values_2021
           ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
               LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
           ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
               THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
               ELSE CONCAT(values_2020, '%') END as values_2020
-          ,CASE WHEN t_2021.metric = 'Surveys Completed' THEN '10%'
-          ELSE CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') END AS Perc_Change_YoY
+          ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
       FROM t_2021
       LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
       ORDER BY Week, CASE metric
