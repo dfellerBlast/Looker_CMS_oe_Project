@@ -18,19 +18,19 @@ WITH plan_compare AS (
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
  ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
- INNER JOIN plan_compare ON plan_compare.fullVisitorId = ga.fullVisitorId
  WHERE (_TABLE_SUFFIX BETWEEN '211001' AND '211014' OR _TABLE_SUFFIX BETWEEN '201001' AND '201014')
+  AND CONCAT(fullVisitorId, visitId, date) IN (SELECT sessionId FROM plan_compare)
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
 
  ,user_agg_2021 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
- ,AVG(is_new) AS new_user_percent
+ ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
  FROM user_data
  WHERE year = 2021
  GROUP BY week_of_year, year)
 
  ,user_agg_2020 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
- ,AVG(is_new) AS new_user_percent
+ ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
  FROM user_data
  WHERE year = 2020
  GROUP BY week_of_year, year)

@@ -18,19 +18,19 @@ WITH plan_compare AS (
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
  ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
- INNER JOIN plan_compare ON plan_compare.fullVisitorId = ga.fullVisitorId
  WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
+ AND CONCAT(fullVisitorId, visitId, date) IN (SELECT sessionId FROM plan_compare)
  GROUP BY week_of_year, year, ga.fullVisitorId, date
  )
 
  ,user_agg_2021 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
- ,AVG(is_new) AS new_user_percent
+ ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
  FROM user_data
  WHERE year = 2021
  GROUP BY week_of_year, year)
 
  ,user_agg_2020 AS (SELECT week_of_year, CONCAT(PARSE_DATE('%Y%m%d', MIN(date)), ' - ', PARSE_DATE('%Y%m%d', MAX(date))) AS date_range, year
- ,AVG(is_new) AS new_user_percent
+ ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
  FROM user_data
  WHERE year = 2020
  GROUP BY week_of_year, year)
@@ -41,7 +41,7 @@ WITH plan_compare AS (
  ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', ga.date)) AS year
  ,ga.fullVisitorId
  ,concat(ga.fullVisitorId, ga.visitId, ga.date) AS sessionId
---  ,COUNTIF(hits.type = 'PAGE') AS pageviews
+-- ,COUNTIF(hits.type = 'PAGE') AS pageviews
  ,CASE WHEN COUNTIF(device.deviceCategory = 'mobile' OR device.deviceCategory = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
  ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '\\/plan-compare\\/#\\/[a-zA-Z]')) > 0 THEN 1 ELSE 0 END AS interact
@@ -145,7 +145,8 @@ WITH plan_compare AS (
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medicarecoverageoptions') OR REGEXP_CONTAINS(hits.page.pagePath, 'medicare-coverage-options') OR REGEXP_CONTAINS(hits.page.pagePath, 'plan-compare/#/coverage-options')) > 0 THEN 1 ELSE 0 END AS wizard_session
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND (REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Plan Options') OR REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Options')) AND (REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Ready to Continue') OR REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Look at Plans'))) > 0 THEN 1 ELSE 0 END AS wizard_convert
  -- medigap session and conversions
-,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/medigap-supplemental-insurance-plans/#/m') OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
+,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/medigap-supplemental-insurance-plans/#/m') OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session
+,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
  FROM `steady-cat-772.30876903.ga_sessions_20*` AS ga
  ,UNNEST(hits) AS hits
  WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
@@ -231,7 +232,7 @@ WITH plan_compare AS (
  SELECT t_2021.Week, t_2021.date_range, t_2021.metric
  ,CASE WHEN t_2021.metric IN ('Sessions', 'Users', 'Pageviews', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
  THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-  WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
+ WHEN t_2021.metric = 'Sessions Per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
  ELSE CONCAT(values_2021, '%') END as values_2021
  ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week),
  LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) * 100), '%') AS prev_week
