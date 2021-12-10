@@ -8,15 +8,13 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,UNNEST(hits) AS hits
                 WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201015' AND '201207')
                 AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
-                AND EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) < EXTRACT(WEEK FROM CURRENT_DATE())
-            )
+          )
             , plan_compare_agg AS (
                 SELECT year
                 ,COUNT(DISTINCT fullVisitorId) AS users
                 ,COUNT(DISTINCT sessionId) AS sessions
                 ,SUM(pageview) AS pageviews
                 FROM plan_compare
-                WHERE Week < EXTRACT(WEEK FROM CURRENT_DATE())
                 GROUP BY year
             )
             -- enroll data
@@ -24,9 +22,8 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(total_enrollments - csr_enrollments) AS web_enrollments
                 ,SUM(csr_enrollments) AS csr_enrollments
                 ,SUM(total_enrollments) AS total_enrollments
-                FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
+                FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_without_year`
                 WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
-                AND EXTRACT(week FROM date) < EXTRACT(week FROM CURRENT_DATE())
                 GROUP BY year
             )
             , accounts AS (
@@ -35,7 +32,6 @@ view: oe_weekly_oe_to_date {derived_table: {
                 ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
                 FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
                 WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
-                AND EXTRACT(week FROM PARSE_DATE('%Y-%m-%d', date)) < EXTRACT(week FROM CURRENT_DATE())
                 GROUP BY Year
             )
             , temp AS (SELECT pc.year AS Year
