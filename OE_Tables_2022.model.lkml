@@ -8,3 +8,4 @@ explore: oe2022_weekly_homepage {}
 explore: oe2022_weekly_medicareaccounts {}
 explore: oe2022_weekly_medicaresitewide {}
 explore: oe2022_weekly_planfindermetrics {}
+explore: oe2022_weekly_oe_to_date {}
