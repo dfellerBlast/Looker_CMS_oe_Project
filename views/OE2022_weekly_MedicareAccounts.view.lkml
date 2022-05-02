@@ -1,22 +1,9 @@
 view: oe2022_weekly_medicareaccounts {
 derived_table: {
   sql: --Medicare accounts
-  WITH
---  mymedicare.gov does not have ga4 data
---  sessions_2020 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
---    ,event_date
---   ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS Year
---    ,user_pseudo_id
---    ,CASE WHEN ep.key = 'ga_session_id' THEN CONCAT(user_pseudo_id, cast(ep.value.int_value as string)) END AS sessionId
---    ,COUNTIF(event_name='page_view') AS pageviews
---    FROM `steady-cat-772.157906096.ga_sessions_20*`
---    ,UNNEST(event_params) AS ep
---    WHERE _TABLE_SUFFIX BETWEEN '201015' AND '201207'
-    -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
---    GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
---),
+WITH
 
-sessions_2021 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
+sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,event_date
     ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS Year
     ,user_pseudo_id
@@ -24,9 +11,7 @@ sessions_2021 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
     ,COUNTIF(event_name='page_view' AND ep.key = 'page_location') AS pageviews
     FROM `steady-cat-772.analytics_266429760.events_*`
     ,UNNEST(event_params) AS ep
-    WHERE _TABLE_SUFFIX BETWEEN '20211201' AND '20211201'
-    -- WHERE (_TABLE_SUFFIX BETWEEN '212001' AND '201030' OR _TABLE_SUFFIX BETWEEN '191015' AND '191030')
-    -- AND (REGEXP_CONTAINS(hits.page.pagePath, '/mbp/') OR REGEXP_CONTAINS(hits.page.pagePath, '/account/'))
+    WHERE (_TABLE_SUFFIX BETWEEN '20211201' AND '20211201' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
       AND  (REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/mbp/') OR
             REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/account/'))
     GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
@@ -50,39 +35,41 @@ sessions_2021 AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
     ,CAST(COUNT(DISTINCT user_pseudo_id) AS FLOAT64) AS `Users`
     ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
     ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
-    FROM sessions_2021
+    FROM sessions
+    WHERE Year = 2021
     GROUP BY Week, Year
 )
 
---, temp_2020 AS (SELECT Week
---    ,Year
---    ,CONCAT(MIN(PARSE_DATE('%Y%m%d', event_date)), ' - ', MAX(PARSE_DATE('%Y%m%d', event_date))) AS date_range
---    ,CAST(COUNT(DISTINCT fullVisitorId) AS FLOAT64) AS `Users`
---    ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
---    ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
---    FROM sessions_2020
---    GROUP BY Week, Year
---)
+, temp_2020 AS (SELECT Week
+   ,Year
+   ,CONCAT(MIN(PARSE_DATE('%Y%m%d', event_date)), ' - ', MAX(PARSE_DATE('%Y%m%d', event_date))) AS date_range
+   ,CAST(COUNT(DISTINCT user_pseudo_id) AS FLOAT64) AS `Users`
+   ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
+   ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
+   FROM sessions
+   WHERE Year = 2020
+   GROUP BY Week, Year
+)
 
 , agg_2021 AS (SELECT temp_2021.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
     FROM temp_2021
     LEFT JOIN accounts ON accounts.Week = temp_2021.Week AND accounts.Year = temp_2021.Year
 )
 
---, agg_2020 AS (SELECT temp_2020.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
---    FROM temp_2020
---    LEFT JOIN accounts ON accounts.Week = temp_2020.Week AND accounts.Year = temp_2020.Year
---)
+, agg_2020 AS (SELECT temp_2020.*, accounts.`New Accounts`, accounts.`Successful Logins`, accounts.`% Login Success`
+   FROM temp_2020
+   LEFT JOIN accounts ON accounts.Week = temp_2020.Week AND accounts.Year = temp_2020.Year
+)
 
 ,t_2021 AS (SELECT *
     FROM agg_2021
     UNPIVOT(values_2021 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
 )
 
---,t_2020 AS (SELECT *
---    FROM agg_2020
- --   UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
---)
+,t_2020 AS (SELECT *
+   FROM agg_2020
+   UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
+)
 
 SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
 ,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
@@ -90,13 +77,13 @@ SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metr
         ELSE CONCAT(values_2021, '%') END as values_2021
 ,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
         LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
---,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
---        WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
---        ELSE CONCAT(values_2020, '%') END as values_2020
---    ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
+,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
+       WHEN t_2021.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_2020 AS float64)), -3))
+       ELSE CONCAT(values_2020, '%') END as values_2020
+   ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
 FROM t_2021
---LEFT JOIN t_2020
---ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
+LEFT JOIN t_2020
+ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
 
 ORDER BY Week, CASE metric
     WHEN 'Users' THEN 1

@@ -25,7 +25,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
           ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-01') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-01')
+          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-02') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-02')
           GROUP BY week_of_year, year
       )
 

@@ -139,7 +139,7 @@ SELECT *
  ,SUM(csr_enrollments) AS csr_enrollments
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
- WHERE (date BETWEEN '2021-12-01' AND '2021-12-01' OR date BETWEEN '2020-12-01' AND '2020-12-01')
+ WHERE (date BETWEEN '2021-12-01' AND '2021-12-02' OR date BETWEEN '2020-12-01' AND '2020-12-02')
  GROUP BY week_of_year, year
  )
 
@@ -152,7 +152,7 @@ SELECT *
  ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
- AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-01' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-08')
+ AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-02' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-02')
  GROUP BY week_of_year, year
  )
 
