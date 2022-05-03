@@ -9,7 +9,7 @@ WITH plan_compare AS (
         ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     FROM `steady-cat-772.analytics_266429760.events_*`
          ,UNNEST(event_params) AS ep
-    WHERE (_TABLE_SUFFIX BETWEEN '20211201' AND '20211201' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+    WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
     AND REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/plan-compare/')
     GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
 )
@@ -27,7 +27,7 @@ WITH plan_compare AS (
       ,SUM(csr_enrollments) AS csr_enrollments
       ,SUM(total_enrollments) AS total_enrollments
       FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_without_year`
-      WHERE (date BETWEEN '2021-12-01' AND '2021-12-01' OR date BETWEEN '2020-12-01' AND '2020-12-01')
+      WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
       GROUP BY year
   )
   , accounts AS (
@@ -35,7 +35,7 @@ WITH plan_compare AS (
       ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
       ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
       FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-      WHERE (date BETWEEN '2021-12-01' AND '2021-12-01' OR date BETWEEN '2020-12-01' AND '2020-12-01')
+      WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
       GROUP BY Year
   )
   , temp AS (SELECT pc.year AS Year

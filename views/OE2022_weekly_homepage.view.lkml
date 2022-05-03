@@ -1,6 +1,7 @@
 view: oe2022_weekly_homepage {
   derived_table: {
-    sql: WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
+    sql: WITH sessions AS (
+    SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,event_date
     ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS Year
     ,user_pseudo_id
@@ -11,7 +12,7 @@ view: oe2022_weekly_homepage {
     ,COUNTIF(event_name='session_start') AS is_entrance
     FROM `steady-cat-772.analytics_266429760.events_*`
     ,UNNEST(event_params) AS ep
-    WHERE (_TABLE_SUFFIX BETWEEN '20211201' AND '20211201' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+    WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
     AND REGEXP_CONTAINS((SELECT REGEXP_REPLACE(value.string_value, 'https://www.medicare.gov', '') FROM UNNEST(event_params) WHERE key = 'page_location'), '^/(\\?|$)')
     GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
     )

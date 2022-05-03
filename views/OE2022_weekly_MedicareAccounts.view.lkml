@@ -11,7 +11,7 @@ sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,COUNTIF(event_name='page_view' AND ep.key = 'page_location') AS pageviews
     FROM `steady-cat-772.analytics_266429760.events_*`
     ,UNNEST(event_params) AS ep
-    WHERE (_TABLE_SUFFIX BETWEEN '20211201' AND '20211201' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+    WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
       AND  (REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/mbp/') OR
             REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/account/'))
     GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
@@ -25,7 +25,7 @@ sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
         (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
     FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-    WHERE (date BETWEEN '2021-12-01' AND '2021-12-01' OR date BETWEEN '2020-12-01' AND '2020-12-01')
+    WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
     GROUP BY Week, Year
 )
 
@@ -92,32 +92,7 @@ ORDER BY Week, CASE metric
     WHEN 'New Accounts' THEN 4
     WHEN 'Successful Logins' THEN 5
     WHEN '% Login Success' THEN 6
-    END
-                            ;;
-  }
-
-  measure: count {
-    type: count
-  }
-
-  dimension: week_of_year {
-    type: string
-    sql: ${TABLE}.Week ;;
-    html:
-          {% if value == 'Week 2' %}
-          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% elsif value == 'Week 4' %}
-          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% elsif value == 'Week 6' %}
-          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% elsif value == 'Week 8' %}
-          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% elsif value == 'Week 10' %}
-          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% else %}
-          <p style="color: black; background-color: white; font-size:100%; text-align:center">{{ rendered_value }}</p>
-          {% endif %}
-          ;;
+    END;;
   }
 
   dimension: date_range {

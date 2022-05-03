@@ -11,7 +11,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
       ,IF (MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'session_engaged')) ='0',1,0) AS is_bounce
       FROM `steady-cat-772.analytics_266429760.events_*`
       ,UNNEST(event_params) AS ep
-      WHERE (_TABLE_SUFFIX BETWEEN '20211201' AND '20211201' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+      WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
       GROUP BY week_of_year, year, user_pseudo_id, sessionId, event_date
       )
       ,qualtrics AS (
@@ -25,7 +25,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
           ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
           ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
           FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-02') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-02')
+          WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
           GROUP BY week_of_year, year
       )
 

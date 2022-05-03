@@ -12,7 +12,7 @@ SELECT *
         ,COUNTIF(event_name='page_view') AS pageviews
         FROM `steady-cat-772.analytics_266429760.events_20*`
         ,UNNEST(event_params) AS ep
-        WHERE (_TABLE_SUFFIX BETWEEN '211201' AND '211201' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
+        WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
         AND REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/plan-compare/')
         GROUP BY user_pseudo_id, sessionId, event_date, year, week_of_year
     ) WHERE sessionId IS NOT NULL
@@ -26,7 +26,7 @@ SELECT *
     ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS year
     ,MAX(CASE WHEN (select value.int_value from unnest(event_params) where event_name = 'session_start' and key = 'ga_session_number') = 1 THEN 1 ELSE 0 END) AS is_new
  FROM `steady-cat-772.analytics_266429760.events_20*`, UNNEST(event_params) AS ep
- WHERE (_TABLE_SUFFIX BETWEEN '211201' AND '211201' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
+ WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
  AND CASE WHEN ep.key = 'ga_session_id' THEN CONCAT(user_pseudo_id, cast(ep.value.int_value as string)) END IN (SELECT sessionId FROM plan_compare)
  GROUP BY week_of_year, year, user_pseudo_id, sessionId, event_date
 )
@@ -55,29 +55,18 @@ SELECT *
      ,CASE WHEN COUNTIF(device.category = 'mobile' OR device.category = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
      ,IF (MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'session_engaged')) ='0',1,0) AS is_bounce
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '\\/plan-compare\\/#\\/[a-zA-Z]')) > 0 THEN 1 ELSE 0 END AS interact
-     -- ma and pdp sessions
-     --,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'MAPD')
-     --AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans - Enter Your Information')
-     --AND REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT')) > 0 THEN 1 ELSE 0 END AS ma_session
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_coverage_type_selected')) > 0 THEN 1 ELSE 0 END AS ma_session
-     --,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT')
-     --AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans - Enter Your Information')
-     --AND (hits.eventinfo.eventLabel = 'Part D + Medigap' OR hits.eventinfo.eventLabel = 'Part D')) > 0 THEN 1 ELSE 0 END AS pdp_session
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_plan_finder_drug')) > 0 THEN 1 ELSE 0 END AS pdp_session
      -- logged in vs anonymous
-     --,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND hits.eventInfo.eventLabel = 'Login') > 0 THEN 1 ELSE 0 END AS logged_in
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_')) > 0 AND MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'logged_in')) = 'true' THEN 1 ELSE 0 END AS logged_in
-     --,CASE WHEN COUNTIF(hits.eventInfo.eventCategory = 'MCT' AND hits.eventInfo.eventAction = 'Find Plans Landing Page - Login' AND REGEXP_CONTAINS(hits.eventInfo.eventLabel,'Continue without logging in')) > 0 THEN 1 ELSE 0 END AS anonymous
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_')) > 0 AND MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'logged_in')) = 'false' THEN 1 ELSE 0 END AS anonymous
      --enroll
-     --,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Find Plans') AND REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Enroll')) > 0 THEN 1 ELSE 0 END AS enrolled
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_plan_finder_plan_enroll_clicked')) > 0 THEN 1 ELSE 0 END AS enrolled
      --plan results
-     --,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/#/search-results')) > 0 THEN 1 ELSE 0 END AS plan_results
      ,CASE WHEN COUNTIF(REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/plan-compare/#/search-results')) > 0 THEN 1 ELSE 0 END AS plan_results
      FROM `steady-cat-772.analytics_266429760.events_20*` AS ga
      ,UNNEST(event_params) AS ep
-     WHERE (_TABLE_SUFFIX BETWEEN '211201' AND '211201' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
+     WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
      GROUP BY week_of_year, year, ga.user_pseudo_id, ga.event_date, sessionId)
     WHERE sessionId IS NOT NULL)
 
@@ -139,7 +128,7 @@ SELECT *
  ,SUM(csr_enrollments) AS csr_enrollments
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
- WHERE (date BETWEEN '2021-12-01' AND '2021-12-02' OR date BETWEEN '2020-12-01' AND '2020-12-02')
+ WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
  GROUP BY week_of_year, year
  )
 
@@ -152,7 +141,7 @@ SELECT *
  ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
  FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
  WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
- AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-12-01' AND '2021-12-02' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-12-01' AND '2020-12-02')
+ AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
  GROUP BY week_of_year, year
  )
 
@@ -162,32 +151,19 @@ SELECT *
  ,ga.user_pseudo_id
  ,concat(ga.user_pseudo_id, ga.event_date) AS sessionId
  -- wizard session and conversions
- -- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medicarecoverageoptions')
- --  OR REGEXP_CONTAINS(hits.page.pagePath, 'medicare-coverage-options')
- --  OR REGEXP_CONTAINS(hits.page.pagePath, 'plan-compare/#/coverage-options')) > 0 THEN 1 ELSE 0 END AS wizard_session
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'medicarecoverageoptions')
                 OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'medicare-coverage-options')
                 OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'plan-compare/#/coverage-options')) > 0 THEN 1 ELSE 0 END AS wizard_session
--- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.eventinfo.eventCategory, 'MCT') AND (REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Plan Options')
---  OR REGEXP_CONTAINS(hits.eventinfo.eventAction, 'Coverage Wizard - Options')) AND (REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Ready to Continue')
---  OR REGEXP_CONTAINS(hits.eventinfo.eventLabel, 'Look at Plans'))) > 0 THEN 1 ELSE 0 END AS wizard_convert
--- ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_coverage_wizard_started')) > 0 THEN 1 ELSE 0 END AS wizard_convert
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS(event_name, 'mct_coverage_wizard_completed')) > 0 THEN 1 ELSE 0 END AS wizard_convert
  -- medigap session and conversions
---,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/medigap-supplemental-insurance-plans/#/m')
---  OR REGEXP_CONTAINS(hits.page.pagePath, '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session
 ,CASE WHEN COUNTIF(REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/medigap-supplemental-insurance-plans/#/m')
                 OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/find-a-plan/.*/medigap')) > 0 THEN 1 ELSE 0 END AS medigap_session
-
---,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results')
---   OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results')
---   OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
  ,CASE WHEN COUNTIF(REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'medigap-supplemental-insurance-plans/results')
                 OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'medigap-supplemental-insurance-plans/#/results')
                 OR REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
 
  FROM `steady-cat-772.analytics_266429760.events_20*` AS ga
- WHERE (_TABLE_SUFFIX BETWEEN '211201' AND '211201' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
+ WHERE (_TABLE_SUFFIX BETWEEN '211015' AND '211207' OR _TABLE_SUFFIX BETWEEN '201201' AND '201201')
  GROUP BY week_of_year, year, ga.user_pseudo_id, event_date)
 
  , medigap_wizard_agg AS (
