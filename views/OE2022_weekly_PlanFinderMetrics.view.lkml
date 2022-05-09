@@ -128,7 +128,7 @@ SELECT *
  ,SUM(csr_enrollments) AS csr_enrollments
  ,SUM(total_enrollments) AS total_enrollments
  FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
- WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
+ WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
  GROUP BY week_of_year, year
  )
 

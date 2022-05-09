@@ -25,7 +25,7 @@ sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
         (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
     FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-    WHERE (date BETWEEN '2021-10-15' AND '2021-12-08' OR date BETWEEN '2020-10-15' AND '2020-12-08')
+    WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
     GROUP BY Week, Year
 )
 
