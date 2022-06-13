@@ -340,7 +340,44 @@ SELECT *
 
   dimension: weekly_totals {
     type: string
-    sql: ${TABLE}.values_2021 ;;
+    # sql: ${TABLE}.values_2021 ;;
+    sql: CASE WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 1' THEN '50%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 1' THEN '35%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 1' THEN '15%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 2' THEN '56%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 2' THEN '31%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 2' THEN '13%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 3' THEN '57%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 3' THEN '31%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 3' THEN '12%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 4' THEN '56%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 4' THEN '32%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 4' THEN '12%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 5' THEN '56%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 5' THEN '32%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 5' THEN '11%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 6' THEN '58%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 6' THEN '31%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 6' THEN '11%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 7' THEN '57%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 7' THEN '31%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 7' THEN '12%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 8' THEN '58%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 8' THEN '31%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 8' THEN '11%'
+
+    WHEN ${metric} = 'PDP PlanType Clicks %' AND ${week_of_year} = 'Week 9' THEN '53%'
+    WHEN ${metric} = 'MA PlanType Clicks %' AND ${week_of_year} = 'Week 9' THEN '35%'
+    WHEN ${metric} = 'MA & PDP PlanType Clicks %' AND ${week_of_year} = 'Week 9' THEN '12%'
+    ELSE ${TABLE}.values_2021
+    END;;
   }
 
   dimension: previous_week {
