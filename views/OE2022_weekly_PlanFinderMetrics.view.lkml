@@ -2,6 +2,7 @@ view: oe2022_weekly_planfindermetrics {
   derived_table: {
     sql:
 -- plan finder metrics
+#GA4
 WITH plan_compare AS (
 SELECT *
     FROM (
