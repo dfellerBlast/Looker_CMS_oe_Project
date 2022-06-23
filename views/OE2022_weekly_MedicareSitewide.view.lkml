@@ -1,19 +1,26 @@
 view: oe2022_weekly_medicaresitewide {
   derived_table: {
-    sql: --medicare sitewide oe
+    sql: -- GA4 sitewide
 WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS week_of_year
       ,event_date
       ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS year
       ,user_pseudo_id
-      ,CASE WHEN ep.key = 'ga_session_id' THEN CONCAT(user_pseudo_id, cast(ep.value.int_value as string)) END AS sessionId
-      ,COUNTIF(event_name='page_view' AND ep.key = 'page_location') AS pageviews
+      ,CONCAT(user_pseudo_id, cast((SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') as string)) AS sessionId
+      ,COUNTIF(event_name='page_view') AS pageviews
       ,CASE WHEN COUNTIF(device.category = 'mobile' OR device.category = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
-      ,IF (MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'session_engaged')) ='0',1,0) AS is_bounce
       FROM `steady-cat-772.analytics_266429760.events_*`
-      ,UNNEST(event_params) AS ep
       WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
       GROUP BY week_of_year, year, user_pseudo_id, sessionId, event_date
       )
+,bounces AS (
+    SELECT CONCAT(user_pseudo_id, cast((SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') as string)) AS sessionId
+    ,1 AS is_bounce
+    FROM `steady-cat-772.analytics_266429760.events_*`
+    WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+    GROUP BY sessionId
+    HAVING MAX((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'session_engaged')) ='0'
+)
+
       ,qualtrics AS (
           SELECT EXTRACT(WEEK FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS week_of_year
           ,EXTRACT(YEAR FROM DATETIME_SUB(end_date, INTERVAL 4 HOUR)) AS year
@@ -29,16 +36,18 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
           GROUP BY week_of_year, year
       )
 
-      , session_agg AS (SELECT sessions.week_of_year
+      , session_agg AS (SELECT s.week_of_year
       ,CONCAT(PARSE_DATE('%Y%m%d', MIN(event_date)), ' - ', PARSE_DATE('%Y%m%d', MAX(event_date))) AS date_range
-      ,sessions.year
+      ,s.year
       ,COUNT(DISTINCT user_pseudo_id) AS users
-      ,COUNT(DISTINCT sessionId) AS sessions
+      ,COUNT(DISTINCT s.sessionId) AS sessions
       ,SUM(pageviews) AS pageviews
-      ,AVG(is_bounce) AS bounce_rate
+      ,SUM(is_bounce)/COUNT(DISTINCT s.sessionId) AS bounce_rate
       ,AVG(mobile_user) AS mobile_users
-      FROM sessions
+      FROM sessions s
+      LEFT JOIN bounces ON bounces.sessionId = s.sessionId
       GROUP BY week_of_year, year)
+
       ,temp AS (
           SELECT session_agg.week_of_year AS Week
           ,session_agg.year AS Year
