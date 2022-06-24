@@ -10,6 +10,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS 
       ,CASE WHEN COUNTIF(device.category = 'mobile' OR device.category = 'tablet') > 0 THEN 1 ELSE 0 END AS mobile_user
       FROM `steady-cat-772.analytics_266429760.events_*`
       WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
+      AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'content_language') IS NOT NULL
       GROUP BY week_of_year, year, user_pseudo_id, sessionId, event_date
       )
 ,bounces AS (

@@ -1,9 +1,7 @@
 view: oe2022_weekly_medicareaccounts {
 derived_table: {
-  sql: --Medicare accounts
-WITH
-
-sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
+  sql: -- ga4 accounts
+WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     ,event_date
     ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', event_date)) AS Year
     ,user_pseudo_id
@@ -14,6 +12,7 @@ sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', event_date)) AS Week
     WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201201' AND '20201201')
       AND  (REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/mbp/') OR
             REGEXP_CONTAINS((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'page_location'), '/account/'))
+      AND (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'content_language') IS NOT NULL
     GROUP BY Week, Year, user_pseudo_id, sessionId, event_date
 )
 
