@@ -1,18 +1,13 @@
 view: oe_oetodate_2022_ua {
   derived_table: {
     sql:--OE to date
-DECLARE CURRENTYEAR_START STRING DEFAULT '20211015';
-DECLARE CURRENTYEAR_END STRING DEFAULT '20211207';
-DECLARE PREVIOUSYEAR_START STRING DEFAULT '20201015';
-DECLARE PREVIOUSYEAR_END STRING DEFAULT '20201207';
-
 WITH plan_compare AS (
   SELECT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId, CAST(hits.type = 'PAGE' AS INT64) AS pageview
   ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
   ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
 )
 , plan_compare_agg AS (
@@ -29,8 +24,7 @@ WITH plan_compare AS (
   ,SUM(csr_enrollments) AS csr_enrollments
   ,SUM(total_enrollments) AS total_enrollments
   FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_without_year`
-  WHERE (date BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END)
-    OR date BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_END))
+  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
   GROUP BY year
 )
 , accounts AS (
@@ -38,8 +32,7 @@ WITH plan_compare AS (
   ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
   ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
   FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-  WHERE (PARSE_DATE('%Y-%m-%d', date) BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END)
-    OR PARSE_DATE('%Y-%m-%d', date) BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_END))
+  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
   GROUP BY Year
 )
 , temp AS (
@@ -60,12 +53,12 @@ WITH plan_compare AS (
 ,t_current AS (SELECT *
 FROM temp
 UNPIVOT(values_current FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
-WHERE year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+WHERE year = 2021
 )
 ,t_previous AS (SELECT *
 FROM temp
 UNPIVOT(values_previous FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
-WHERE year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+WHERE year = 2020
 )
 SELECT t_current.metric, FORMAT("%'d", SUM(values_current)) AS values_current, FORMAT("%'d", SUM(values_previous)) AS values_previous,
 CONCAT(ROUND((SUM(values_current) - SUM(values_previous)) / SUM(values_previous) * 100), '%') AS YoY_Change

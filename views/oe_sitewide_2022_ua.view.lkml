@@ -1,11 +1,6 @@
 view: oe_sitewide_2022_ua {
   derived_table: {
     sql: --medicare sitewide oe
-DECLARE CURRENTYEAR_START STRING DEFAULT '20211015';
-DECLARE CURRENTYEAR_END STRING DEFAULT '20211207';
-DECLARE PREVIOUSYEAR_START STRING DEFAULT '20201015';
-DECLARE PREVIOUSYEAR_END STRING DEFAULT '20201207';
-
 WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS week_of_year
   ,date
   ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', ga.date)) AS year
@@ -16,7 +11,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
   FROM `steady-cat-772.30876903.ga_sessions_*` AS ga
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date
   )
 ,qualtrics AS (
@@ -30,9 +25,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
   ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
   FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-    -- i believe the +1 for current year end because of when qualtrics run their ETL
-  WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END) + 1 OR
-    DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_END))
+  WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
   GROUP BY week_of_year, year
 )
 
@@ -70,13 +63,13 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   SELECT * FROM temp
   UNPIVOT(values_current FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
   ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
-  WHERE year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+  WHERE year = 2021
 )
 ,t_previous AS (
   SELECT * FROM temp
   UNPIVOT(values_previous FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
   ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
-  WHERE year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+  WHERE year = 2020
 )
 SELECT CONCAT('Week ', t_current.Week-40) AS Week, t_current.Date_Range, t_current.metric
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))

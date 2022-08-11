@@ -1,11 +1,6 @@
 view: oe_accounts_2022_ua {
   derived_table: {
     sql: --Medicare accounts
-DECLARE CURRENTYEAR_START STRING DEFAULT '20211015';
-DECLARE CURRENTYEAR_END STRING DEFAULT '20211207';
-DECLARE PREVIOUSYEAR_START STRING DEFAULT '20201015';
-DECLARE PREVIOUSYEAR_END STRING DEFAULT '20201207';
-
 WITH sessions AS (
   SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
   ,date
@@ -15,7 +10,7 @@ WITH sessions AS (
   ,COUNTIF(hits.type = 'PAGE') AS pageviews
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   AND (REGEXP_CONTAINS(hits.page.pagePath, '/mbp/') OR REGEXP_CONTAINS(hits.page.pagePath, '/account/'))
   GROUP BY Week, Year, fullVisitorId, visitId, date
 )
@@ -28,8 +23,7 @@ WITH sessions AS (
   ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
   (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
   FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-  WHERE (PARSE_DATE('%Y-%m-%d', date) BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END)
-    OR PARSE_DATE('%Y-%m-%d', date) BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START))
+  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
   GROUP BY Week, Year
   )
 
@@ -40,7 +34,7 @@ WITH sessions AS (
   ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
   ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
   FROM sessions
-  WHERE Year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+  WHERE Year = 2021
   GROUP BY Week, Year
   )
 
@@ -51,7 +45,7 @@ WITH sessions AS (
   ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
   ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
   FROM sessions
-  WHERE Year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+  WHERE Year = 2020
   GROUP BY Week, Year
   )
 

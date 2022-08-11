@@ -2,11 +2,6 @@ view: oe_planfinder_2022_ua {
   derived_table: {
     sql:
     -- plan finder metrics
-DECLARE CURRENTYEAR_START STRING DEFAULT '20211015';
-DECLARE CURRENTYEAR_END STRING DEFAULT '20211207';
-DECLARE PREVIOUSYEAR_START STRING DEFAULT '20201015';
-DECLARE PREVIOUSYEAR_END STRING DEFAULT '20201207';
-
 WITH plan_compare AS (
   SELECT DISTINCT fullVisitorId, visitId, CONCAT(fullVisitorId, visitId, date) AS sessionId
   ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS week_of_year
@@ -14,7 +9,7 @@ WITH plan_compare AS (
   ,COUNTIF(hits.type = 'PAGE') AS pageviews
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
   GROUP BY fullVisitorId, visitId, date, year, week_of_year
 )
@@ -26,7 +21,7 @@ WITH plan_compare AS (
   ,EXTRACT(YEAR FROM PARSE_DATE('%Y%m%d', date)) AS year
   ,MAX(CASE WHEN totals.newVisits = 1 THEN 1 ELSE 0 END) AS is_new
   FROM `steady-cat-772.30876903.ga_sessions_*` AS ga
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   AND CONCAT(fullVisitorId, visitId, date) IN (SELECT sessionId FROM plan_compare)
   GROUP BY week_of_year, year, ga.fullVisitorId, date
 )
@@ -37,7 +32,7 @@ WITH plan_compare AS (
   ,year
   ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
   FROM user_data
-  WHERE year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+  WHERE year = 2021
   GROUP BY week_of_year, year
 )
 
@@ -47,7 +42,7 @@ WITH plan_compare AS (
   ,year
   ,SUM(is_new) / COUNT(DISTINCT fullVisitorId) AS new_user_percent
   FROM user_data
-  WHERE year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+  WHERE year = 2020
   GROUP BY week_of_year, year
 )
 
@@ -71,7 +66,7 @@ WITH plan_compare AS (
   ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/#/search-results')) > 0 THEN 1 ELSE 0 END AS plan_results
   FROM `steady-cat-772.30876903.ga_sessions_*` AS ga
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date
 )
 
@@ -96,7 +91,7 @@ WITH plan_compare AS (
   ,SUM(plan_results) / SUM(interact) AS plan_results_nonbounce_perc
   FROM sessions
   INNER JOIN plan_compare ON plan_compare.sessionId = sessions.sessionId AND plan_compare.year = sessions.year AND plan_compare.week_of_year = sessions.week_of_year
-  WHERE sessions.year=CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+  WHERE sessions.year=2021
   GROUP BY week_of_year, year
 )
 
@@ -121,7 +116,7 @@ WITH plan_compare AS (
   ,SUM(plan_results) / SUM(interact) AS plan_results_nonbounce_perc
   FROM sessions
   INNER JOIN plan_compare ON plan_compare.sessionId = sessions.sessionId AND plan_compare.year = sessions.year AND plan_compare.week_of_year = sessions.week_of_year
-  WHERE sessions.year=CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+  WHERE sessions.year=2020
   GROUP BY week_of_year, year
 )
 
@@ -133,8 +128,7 @@ WITH plan_compare AS (
   ,SUM(csr_enrollments) AS csr_enrollments
   ,SUM(total_enrollments) AS total_enrollments
   FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_with_year`
-  WHERE (date BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END)
-  OR date BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_END))
+  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
   GROUP BY week_of_year, year
 )
 
@@ -147,8 +141,7 @@ WITH plan_compare AS (
   ,COUNTIF(q18 = '3') / COUNT(q18) AS will_contact_cc
   FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
   WHERE (REGEXP_CONTAINS(tools_use, 'MCT') OR REGEXP_CONTAINS(tools_use, 'Plan Finder'))
-  AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN PARSE_DATE('%Y%m%d', CURRENTYEAR_START) AND PARSE_DATE('%Y%m%d', CURRENTYEAR_END) + 1 OR
-    DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN PARSE_DATE('%Y%m%d', PREVIOUSYEAR_START) AND PARSE_DATE('%Y%m%d', PREVIOUSYEAR_END) + 1)
+  AND (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
   GROUP BY week_of_year, year
 )
 
@@ -164,7 +157,7 @@ WITH plan_compare AS (
   ,CASE WHEN COUNTIF(REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/results') OR REGEXP_CONTAINS(hits.page.pagePath, 'medigap-supplemental-insurance-plans/#/m/plans')) > 0 THEN 1 ELSE 0 END AS medigap_convert
   FROM `steady-cat-772.30876903.ga_sessions_*` AS ga
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN CURRENTYEAR_START AND CURRENTYEAR_END OR _TABLE_SUFFIX BETWEEN PREVIOUSYEAR_START AND PREVIOUSYEAR_END)
+  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
   GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, date
 )
 
@@ -201,10 +194,10 @@ WITH plan_compare AS (
   LEFT JOIN etl_enroll ON etl_enroll.week_of_year = user_agg_current.week_of_year AND etl_enroll.year = user_agg_current.year
   LEFT JOIN qualtrics ON qualtrics.week_of_year = user_agg_current.week_of_year AND qualtrics.year = user_agg_current.year
   LEFT JOIN medigap_wizard_agg ON medigap_wizard_agg.week_of_year = user_agg_current.week_of_year AND medigap_wizard_agg.year = user_agg_current.year
-  WHERE user_agg_current.year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
-  AND qualtrics.year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
-  AND medigap_wizard_agg.year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
-  AND etl_enroll.year = CAST(SUBSTR(CURRENTYEAR_START, 1, 4) AS INT64)
+  WHERE user_agg_current.year = 2021
+  AND qualtrics.year = 2021
+  AND medigap_wizard_agg.year = 2021
+  AND etl_enroll.year = 2021
   ORDER BY Week
 )
 
@@ -231,10 +224,10 @@ WITH plan_compare AS (
   LEFT JOIN etl_enroll ON etl_enroll.week_of_year = user_agg_previous.week_of_year AND etl_enroll.year = user_agg_previous.year
   LEFT JOIN qualtrics ON qualtrics.week_of_year = user_agg_previous.week_of_year AND qualtrics.year = user_agg_previous.year
   LEFT JOIN medigap_wizard_agg ON medigap_wizard_agg.week_of_year = user_agg_previous.week_of_year AND medigap_wizard_agg.year = user_agg_previous.year
-  WHERE user_agg_previous.year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
-  AND etl_enroll.year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
-  AND qualtrics.year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
-  AND medigap_wizard_agg.year = CAST(SUBSTR(PREVIOUSYEAR_START, 1, 4) AS INT64)
+  WHERE user_agg_previous.year = 2020
+  AND etl_enroll.year = 2020
+  AND qualtrics.year = 2020
+  AND medigap_wizard_agg.year = 2020
   ORDER BY Week
 )
 
