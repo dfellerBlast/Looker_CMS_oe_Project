@@ -15,3 +15,9 @@ explore: oe_weekly_planfindermetrics {}
 explore: oe_weekly_medicareaccounts {}
 explore: oe_weekly_medicaresitewide {}
 explore: oe_weekly_homepage {}
+
+explore: oe_oetodate_2022_ua {}
+explore: oe_planfinder_2022_ua {}
+explore: oe_accounts_2022_ua {}
+explore: oe_sitewide_2022_ua {}
+explore: oe_homepage_2022_ua {}
