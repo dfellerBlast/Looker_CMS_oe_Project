@@ -62,6 +62,30 @@ ORDER BY Week, CASE metric
       ;;
   }
 
+  measure: count {
+    type: count
+  }
+
+  dimension: week_of_year {
+    type: string
+    sql: ${TABLE}.Week ;;
+    html:
+          {% if value == 'Week 2' %}
+          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% elsif value == 'Week 4' %}
+          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% elsif value == 'Week 6' %}
+          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% elsif value == 'Week 8' %}
+          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% elsif value == 'Week 10' %}
+          <p style="color: black; background-color: gainsboro; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% else %}
+          <p style="color: black; background-color: white; font-size:100%; text-align:center">{{ rendered_value }}</p>
+          {% endif %}
+          ;;
+  }
+
   dimension: date_range {
     type: string
     sql: ${TABLE}.date_range ;;
