@@ -125,7 +125,7 @@ END
     alpha_sort: yes
   }
 
-  dimension: Current_Weekly_Totals{
+  dimension: Current_Year_Weekly_Totals{
     type: string
     sql: ${TABLE}.values_current ;;
   }
@@ -135,7 +135,7 @@ END
     sql: ${TABLE}.prev_week ;;
   }
 
-  dimension: Previous_Weekly_Totals {
+  dimension: Previous_Year_Weekly_Totals {
     type: string
     sql: ${TABLE}.values_previous ;;
   }
