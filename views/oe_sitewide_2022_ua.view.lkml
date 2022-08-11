@@ -11,7 +11,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   ,MAX(CASE WHEN totals.bounces = 1 THEN 1 ELSE 0 END) AS is_bounce
   FROM `steady-cat-772.30876903.ga_sessions_*` AS ga
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
+  WHERE (_TABLE_SUFFIX BETWEEN '20220604' AND '20220721' OR _TABLE_SUFFIX BETWEEN '20210604' AND '20210721')
   GROUP BY week_of_year, year, ga.fullVisitorId, ga.visitId, ga.date
   )
 ,qualtrics AS (
@@ -25,7 +25,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   ,COUNTIF(audience = 'Caregiver') / COUNT(audience) AS caregiver_percent
   ,COUNTIF(audience = 'Professional') / COUNT(audience) AS professional_percent
   FROM `steady-cat-772.etl_medicare_qualtrics.site_wide_survey`
-  WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-10-15' AND '2021-12-08') OR (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2020-10-15' AND '2020-12-08')
+  WHERE (DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2022-06-04' AND '2022-07-22' OR DATETIME_SUB(end_date, INTERVAL 4 HOUR) BETWEEN '2021-06-04' AND '2021-07-22')
   GROUP BY week_of_year, year
 )
 
@@ -40,7 +40,8 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   ,AVG(mobile_user) AS mobile_users
   FROM sessions
   GROUP BY week_of_year, year)
-  ,temp AS (
+
+,temp AS (
   SELECT session_agg.week_of_year AS Week
   ,session_agg.year AS Year
   ,date_range AS Date_Range
@@ -63,19 +64,19 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
   SELECT * FROM temp
   UNPIVOT(values_current FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
   ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
-  WHERE year = 2021
+  WHERE year = 2022
 )
 ,t_previous AS (
   SELECT * FROM temp
   UNPIVOT(values_previous FOR metric IN (Users, Sessions, Pageviews, `Bounce Rate`, `% Mobile Users`, `Overall CSAT`, `Goal Completion %`
   ,`Surveys Completed`, `Beneficiary %`, `CoA %`, `Caregiver %`, `Professional %`))
-  WHERE year = 2020
+  WHERE year = 2021
 )
-SELECT CONCAT('Week ', t_current.Week-40) AS Week, t_current.Date_Range, t_current.metric
+SELECT CONCAT('Week ', t_current.Week-21) AS Week, t_current.Date_Range, t_current.metric
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
 ELSE CONCAT(values_current, '%') END as values_current
-,CONCAT(ROUND((values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)) /
-LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week) * 100), '%') AS prev_week
+,CONCAT(ROUND(SAFE_DIVIDE((values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)),
+LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)) * 100), '%') AS prev_week
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
 THEN CONCAT(FORMAT("%'d", CAST(values_previous AS int64)))
 ELSE CONCAT(values_previous, '%') END as values_previous

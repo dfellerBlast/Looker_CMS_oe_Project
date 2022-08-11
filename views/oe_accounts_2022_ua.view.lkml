@@ -10,7 +10,7 @@ WITH sessions AS (
   ,COUNTIF(hits.type = 'PAGE') AS pageviews
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
+  WHERE (_TABLE_SUFFIX BETWEEN '20220604' AND '20220721' OR _TABLE_SUFFIX BETWEEN '20210604' AND '20210721')
   AND (REGEXP_CONTAINS(hits.page.pagePath, '/mbp/') OR REGEXP_CONTAINS(hits.page.pagePath, '/account/'))
   GROUP BY Week, Year, fullVisitorId, visitId, date
 )
@@ -23,7 +23,7 @@ WITH sessions AS (
   ,ROUND(SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) /
   (SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) + SUM(CAST(REGEXP_REPLACE(FailedLogins, ',', '') AS FLOAT64))) * 100) AS `% Login Success`
   FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
+  WHERE (date BETWEEN '2022-06-04' AND '2022-07-21' OR date BETWEEN '2021-06-04' AND '2021-07-21')
   GROUP BY Week, Year
   )
 
@@ -34,7 +34,7 @@ WITH sessions AS (
   ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
   ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
   FROM sessions
-  WHERE Year = 2021
+  WHERE Year = 2022
   GROUP BY Week, Year
   )
 
@@ -45,7 +45,7 @@ WITH sessions AS (
   ,CAST(COUNT(DISTINCT sessionId) AS FLOAT64) AS `Sessions`
   ,CAST(SUM(pageviews) AS FLOAT64) AS `Pageviews`
   FROM sessions
-  WHERE Year = 2020
+  WHERE Year = 2021
   GROUP BY Week, Year
   )
 
@@ -68,7 +68,7 @@ WITH sessions AS (
   UNPIVOT(values_previous FOR metric IN (`Users`, `Sessions`, `Pageviews`, `New Accounts`, `Successful Logins`, `% Login Success`))
   )
 
-SELECT CONCAT('Week ', t_current.Week - 40) AS Week, t_current.date_range, t_current.metric
+SELECT CONCAT('Week ', t_current.Week - 21) AS Week, t_current.date_range, t_current.metric
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'New Accounts', 'Successful Logins') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
 WHEN t_current.metric = 'Sessions per User' THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)), SUBSTR(FORMAT("%.2f", CAST(values_current AS float64)), -3))
 ELSE CONCAT(values_current, '%') END as values_current

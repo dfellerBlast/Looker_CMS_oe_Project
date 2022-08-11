@@ -12,7 +12,7 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
   ,MAX(case when hits.isEntrance = TRUE THEN 1 ELSE 0 END) AS is_entrance
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
+  WHERE (_TABLE_SUFFIX BETWEEN '20220604' AND '20220721' OR _TABLE_SUFFIX BETWEEN '20210604' AND '20210721')
   AND REGEXP_CONTAINS(hits.page.pagePath, '^/(\\?|$)')
   GROUP BY Week, Year, fullVisitorId, visitId, date
   )
@@ -31,16 +31,16 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
 ,t_current AS (SELECT *
   FROM agg
   UNPIVOT(values_current FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
-  WHERE year = 2021
+  WHERE year = 2022
   )
 
 ,t_previous AS (SELECT *
   FROM agg
   UNPIVOT(values_previous FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
-  WHERE year = 2020
+  WHERE year = 2021
   )
 
-SELECT CONCAT('Week ', t_current.Week - 40) AS Week, t_current.date_range, t_current.metric
+SELECT CONCAT('Week ', t_current.Week - 21) AS Week, t_current.date_range, t_current.metric
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
         WHEN t_current.metric = 'Sessions per User' THEN CAST(ROUND(values_current, 2) AS STRING)
         ELSE CONCAT(values_current, '%') END as values_current

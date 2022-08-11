@@ -7,7 +7,7 @@ WITH plan_compare AS (
   ,EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
   FROM `steady-cat-772.30876903.ga_sessions_*`
   ,UNNEST(hits) AS hits
-  WHERE (_TABLE_SUFFIX BETWEEN '20211015' AND '20211207' OR _TABLE_SUFFIX BETWEEN '20201015' AND '20201207')
+  WHERE (_TABLE_SUFFIX BETWEEN '20220604' AND '20220721' OR _TABLE_SUFFIX BETWEEN '20210604' AND '20210721')
   AND REGEXP_CONTAINS(hits.page.pagePath, '/plan-compare/')
 )
 , plan_compare_agg AS (
@@ -24,7 +24,7 @@ WITH plan_compare AS (
   ,SUM(csr_enrollments) AS csr_enrollments
   ,SUM(total_enrollments) AS total_enrollments
   FROM `steady-cat-772.etl_medicare_mct_enrollment.downloads_without_year`
-  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
+  WHERE (date BETWEEN '2022-06-04' AND '2022-07-21' OR date BETWEEN '2021-06-04' AND '2021-07-21')
   GROUP BY year
 )
 , accounts AS (
@@ -32,7 +32,7 @@ WITH plan_compare AS (
   ,SUM(CAST(REGEXP_REPLACE(NewAccounts, ',', '') AS FLOAT64)) AS NewAccounts
   ,SUM(CAST(REGEXP_REPLACE(SuccessfulLogins, ',', '') AS FLOAT64)) AS SuccessfulLogins
   FROM `steady-cat-772.CMSGoogleSheets.MedicareAccountsTable`
-  WHERE (date BETWEEN '2021-10-15' AND '2021-12-07' OR date BETWEEN '2020-10-15' AND '2020-12-07')
+  WHERE (date BETWEEN '2022-06-04' AND '2022-07-21' OR date BETWEEN '2021-06-04' AND '2021-07-21')
   GROUP BY Year
 )
 , temp AS (
@@ -53,12 +53,12 @@ WITH plan_compare AS (
 ,t_current AS (SELECT *
 FROM temp
 UNPIVOT(values_current FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
-WHERE year = 2021
+WHERE year = 2022
 )
 ,t_previous AS (SELECT *
 FROM temp
 UNPIVOT(values_previous FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
-WHERE year = 2020
+WHERE year = 2021
 )
 SELECT t_current.metric, FORMAT("%'d", SUM(values_current)) AS values_current, FORMAT("%'d", SUM(values_previous)) AS values_previous,
 CONCAT(ROUND((SUM(values_current) - SUM(values_previous)) / SUM(values_previous) * 100), '%') AS YoY_Change
