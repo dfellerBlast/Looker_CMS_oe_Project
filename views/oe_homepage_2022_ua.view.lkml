@@ -28,29 +28,29 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', date)) AS Week
   FROM sessions
   GROUP BY Week, Year)
 
-,t_2021 AS (SELECT *
+,t_current AS (SELECT *
   FROM agg
-  UNPIVOT(values_2021 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
+  UNPIVOT(values_current FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
   WHERE year = 2021
   )
 
-,t_2020 AS (SELECT *
+,t_previous AS (SELECT *
   FROM agg
-  UNPIVOT(values_2020 FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
+  UNPIVOT(values_previous FOR metric IN (`Users`, `Sessions`, `Pageviews`, `Bounce Rate`, `% Mobile Users`))
   WHERE year = 2020
   )
 
-SELECT CONCAT('Week ', t_2021.Week - 40) AS Week, t_2021.date_range, t_2021.metric
-,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_2021 AS int64)))
-        WHEN t_2021.metric = 'Sessions per User' THEN CAST(ROUND(values_2021, 2) AS STRING)
-        ELSE CONCAT(values_2021, '%') END as values_2021
-,CONCAT(ROUND((values_2021 - LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week)) /
-        LAG(values_2021, 1, NULL) OVER (PARTITION BY t_2021.metric ORDER BY t_2021.Week) * 100), '%') AS prev_week
-,CASE WHEN t_2021.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_2020 AS int64)))
-        WHEN t_2021.metric = 'Sessions per User' THEN CAST(ROUND(values_2020, 2) AS STRING)
-        ELSE CONCAT(values_2020, '%') END as values_2020
-    ,CONCAT(ROUND(SAFE_DIVIDE(values_2021 - values_2020, values_2020)*100), '%') AS Perc_Change_YoY
-FROM t_2021 LEFT JOIN t_2020 ON t_2020.Week = t_2021.Week AND t_2020.metric = t_2021.metric
+SELECT CONCAT('Week ', t_current.Week - 40) AS Week, t_current.date_range, t_current.metric
+,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
+        WHEN t_current.metric = 'Sessions per User' THEN CAST(ROUND(values_current, 2) AS STRING)
+        ELSE CONCAT(values_current, '%') END as values_current
+,CONCAT(ROUND((values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)) /
+        LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week) * 100), '%') AS prev_week
+,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews') THEN CONCAT(FORMAT("%'d", CAST(values_previous AS int64)))
+        WHEN t_current.metric = 'Sessions per User' THEN CAST(ROUND(values_previous, 2) AS STRING)
+        ELSE CONCAT(values_previous, '%') END as values_previous
+    ,CONCAT(ROUND(SAFE_DIVIDE(values_current - values_previous, values_previous)*100), '%') AS Perc_Change_YoY
+FROM t_current LEFT JOIN t_previous ON t_previous.Week = t_current.Week AND t_previous.metric = t_current.metric
 ORDER BY Week, CASE metric
       WHEN 'Users' THEN 1
       WHEN 'Sessions' THEN 2
