@@ -131,9 +131,9 @@ END
     alpha_sort: yes
   }
 
-  dimension: weekly_totals{
+  dimension: Current_Weekly_Totals{
     type: string
-    sql: ${TABLE}.values_2021 ;;
+    sql: ${TABLE}.values_current ;;
   }
 
   dimension: previous_week {
@@ -141,9 +141,9 @@ END
     sql: ${TABLE}.prev_week ;;
   }
 
-  dimension: 2020_Weekly_Totals {
+  dimension: Previous_Weekly_Totals {
     type: string
-    sql: ${TABLE}.values_2020 ;;
+    sql: ${TABLE}.values_previous ;;
   }
 
   dimension: perc_change_yoy {

@@ -87,15 +87,15 @@ GROUP BY metric
     alpha_sort: yes
   }
 
-  dimension: OE_to_Date_Total{
+  dimension: Current_OE_to_Date_Total{
     type: string
-    sql: ${TABLE}.values_2021 ;;
+    sql: ${TABLE}.values_current ;;
   }
 
 
-  dimension: 2020_OE_to_Date_Total {
+  dimension: Previous_OE_to_Date_Total {
     type: string
-    sql: ${TABLE}.values_2020 ;;
+    sql: ${TABLE}.values_previous ;;
   }
 
   dimension: perc_change_yoy {
