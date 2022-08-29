@@ -95,7 +95,7 @@ GROUP BY metric
 
   measure: perc_change_yoy {
     type: sum
-    value_format: "0\%"
+    value_format: "0%"
     sql: ${TABLE}.YoY_Change ;;
    }
 
