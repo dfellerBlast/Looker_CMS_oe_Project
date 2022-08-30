@@ -75,12 +75,12 @@ WITH sessions AS (SELECT EXTRACT(WEEK FROM PARSE_DATE('%Y%m%d', ga.date)) AS wee
 SELECT CONCAT('Week ', t_current.Week-21) AS Week, t_current.Date_Range, t_current.metric
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed') THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
 ELSE CONCAT(values_current, '%') END as values_current
-,CONCAT(ROUND(SAFE_DIVIDE((values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)),
-LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)) * 100), '%') AS prev_week
+,ROUND(SAFE_DIVIDE((values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)),
+LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)), 2) AS prev_week
 ,CASE WHEN t_current.metric IN ('Users', 'Sessions', 'Pageviews', 'Surveys Completed')
 THEN CONCAT(FORMAT("%'d", CAST(values_previous AS int64)))
 ELSE CONCAT(values_previous, '%') END as values_previous
-,CONCAT(ROUND(SAFE_DIVIDE(values_current - values_previous, values_previous)*100), '%') AS Perc_Change_YoY
+,ROUND(SAFE_DIVIDE(values_current - values_previous, values_previous), 2) AS Perc_Change_YoY
 FROM t_current
 LEFT JOIN t_previous ON t_previous.Week = t_current.Week AND t_previous.metric = t_current.metric
 ORDER BY Week, CASE metric
@@ -140,8 +140,9 @@ END
     sql: ${TABLE}.values_current ;;
   }
 
-  dimension: previous_week {
-    type: string
+  measure: previous_week {
+    type: sum
+    value_format: "0%"
     sql: ${TABLE}.prev_week ;;
   }
 
@@ -150,8 +151,9 @@ END
     sql: ${TABLE}.values_previous ;;
   }
 
-  dimension: perc_change_yoy {
-    type: string
+  measure: perc_change_yoy {
+    type: sum
+    value_format: "0%"
     sql: ${TABLE}.Perc_Change_YoY ;;
   }
 

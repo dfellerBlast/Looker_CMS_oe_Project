@@ -252,13 +252,13 @@ SELECT t_current.Week, t_current.date_range, t_current.metric
 THEN CONCAT(FORMAT("%'d", CAST(values_current AS int64)))
 WHEN t_current.metric = 'Sessions Per User' THEN CAST(ROUND(values_current, 2) AS STRING)
 ELSE CONCAT(values_current, '%') END as values_current
-,CONCAT(ROUND(SAFE_DIVIDE(values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week),
-LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)) * 100), '%') AS prev_week
+,ROUND(SAFE_DIVIDE(values_current - LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week),
+LAG(values_current, 1, NULL) OVER (PARTITION BY t_current.metric ORDER BY t_current.Week)), 2) AS prev_week
 ,CASE WHEN t_current.metric IN ('Sessions', 'Users', 'Pageviews', 'Wizard Sessions', 'Medigap Sessions', 'Online Enrollments', 'Call Center Enrollments', 'Total Enrollments')
 THEN CONCAT(FORMAT("%'d", CAST(values_previous AS int64)))
 WHEN t_current.metric = 'Sessions Per User' THEN CAST(ROUND(values_previous, 2) AS STRING)
 ELSE CONCAT(values_previous, '%') END as values_previous
-,CONCAT(ROUND(SAFE_DIVIDE(values_current - values_previous, values_previous)*100), '%') AS Perc_Change_YoY
+,ROUND(SAFE_DIVIDE(values_current - values_previous, values_previous), 2) AS Perc_Change_YoY
 FROM t_current
 LEFT JOIN t_previous ON t_previous.Week = t_current.Week AND t_previous.metric = t_current.metric
 ORDER BY Week, CASE metric
@@ -349,8 +349,9 @@ END
     sql: ${TABLE}.values_current ;;
   }
 
-  dimension: previous_week {
-    type: string
+  measure: previous_week {
+    type: sum
+    value_format: "0%"
     sql: ${TABLE}.prev_week ;;
   }
 
@@ -359,8 +360,9 @@ END
     sql: ${TABLE}.values_previous ;;
   }
 
-  dimension: Perc_Change_YoY {
-    type: string
+  measure: Perc_Change_YoY {
+    type: sum
+    value_format: "0%"
     sql: ${TABLE}.Perc_Change_YoY ;;
   }
 

@@ -49,7 +49,6 @@ WITH plan_compare AS (
   LEFT JOIN etl_enroll ON etl_enroll.year = pc.year
   LEFT JOIN accounts ON accounts.year = pc.year
 )
--- SELECT * FROM temp
 ,t_current AS (SELECT *
 FROM temp
 UNPIVOT(values_current FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`, `PlanFinder Pageviews`, `Online Enrollments`, `Call Center Enrollments`, `Total Enrollments`, `New Accounts`, `Successful Logins`))
@@ -61,7 +60,7 @@ UNPIVOT(values_previous FOR metric IN (`PlanFinder Users`, `PlanFinder Sessions`
 WHERE year = 2021
 )
 SELECT t_current.metric, FORMAT("%'d", SUM(values_current)) AS values_current, FORMAT("%'d", SUM(values_previous)) AS values_previous,
-CONCAT(ROUND((SUM(values_current) - SUM(values_previous)) / SUM(values_previous) * 100), '%') AS YoY_Change
+ROUND((SUM(values_current) - SUM(values_previous)) / SUM(values_previous), 2) AS YoY_Change
 FROM t_current
 LEFT JOIN t_previous ON t_previous.metric = t_current.metric
 GROUP BY metric
@@ -91,8 +90,9 @@ GROUP BY metric
     sql: ${TABLE}.values_previous ;;
   }
 
-  dimension: perc_change_yoy {
-    type: string
+  measure: perc_change_yoy {
+    type: sum
+    value_format: "0%"
     sql: ${TABLE}.YoY_Change ;;
   }
 
